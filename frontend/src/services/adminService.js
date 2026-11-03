@@ -1,11 +1,11 @@
-import { apiClient } from './apiClient';
+import { apiJson } from '../utils/api';
 
 export const adminService = {
-  getUsuarios: () => apiClient('/api/admin/usuarios'),
-  createUsuario: (payload) => apiClient('/api/admin/usuarios', { method: 'POST', body: payload }),
-  updateUsuarioEstado: (id, estado) => apiClient(`/api/admin/usuarios/${id}/estado`, { method: 'PATCH', body: { estado } }),
-  deleteUsuario: (id) => apiClient(`/api/admin/usuarios/${id}`, { method: 'DELETE' }),
-  getRoles: () => apiClient('/api/admin/roles'),
+  getUsuarios: () => apiJson('/api/admin/usuarios'),
+  createUsuario: (payload) => apiJson('/api/admin/usuarios', { method: 'POST', body: payload }),
+  updateUsuarioEstado: (id, estado) => apiJson(`/api/admin/usuarios/${id}/estado`, { method: 'PATCH', body: { estado } }),
+  deleteUsuario: (id) => apiJson(`/api/admin/usuarios/${id}`, { method: 'DELETE' }),
+  getRoles: () => apiJson('/api/admin/roles'),
 };
 
 export default adminService;

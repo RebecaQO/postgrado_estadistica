@@ -1,4 +1,4 @@
-export { apiClient } from './apiClient';
+export { apiJson } from '../utils/api';
 export { authService } from './authService';
 export { programaService } from './programaService';
 export { docenteService } from './docenteService';

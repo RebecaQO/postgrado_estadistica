@@ -1,15 +1,15 @@
-import { apiClient } from './apiClient';
+import { apiJson } from '../utils/api';
 
 export const institucionService = {
   /**
    * Obtiene la información institucional de la carrera
    */
-  getInfo: () => apiClient('/api/institucion/info'),
+  getInfo: () => apiJson('/api/institucion/info'),
 
   /**
    * Actualiza la información institucional
    */
-  updateInfo: (payload) => apiClient('/api/admin/institucion/info', {
+  updateInfo: (payload) => apiJson('/api/admin/institucion/info', {
     method: 'PUT',
     body: payload,
   }),
