@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
-import { setAuthToken, removeAuthToken } from '../utils/api';
+import { setAuthToken, removeAuthToken, AUTH_REQUIRED_EVENT } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -31,6 +31,18 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('posgrado_umsa_auth');
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      removeAuthToken();
+      setCurrentUser(null);
+      setAuthError('La sesión venció. Inicie sesión nuevamente.');
+      setLoginModalOpen(true);
+    };
+
+    window.addEventListener(AUTH_REQUIRED_EVENT, handleUnauthorized);
+    return () => window.removeEventListener(AUTH_REQUIRED_EVENT, handleUnauthorized);
+  }, []);
 
   const loginAs = async (credentialsOrRole, passwordValue) => {
     let requestPayload = credentialsOrRole;

@@ -3,6 +3,7 @@
  * La URL base se configura con VITE_API_URL.
  */
 export const TOKEN_STORAGE_KEY = 'posgrado_umsa_token';
+export const AUTH_REQUIRED_EVENT = 'posgrado:unauthorized';
 
 export const API_BASE_URL = (
   import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
@@ -31,7 +32,7 @@ export const apiUrl = (endpoint) => {
   return `${API_BASE_URL}${clean}`;
 };
 
-export const getAuthHeaders = (isFormData = false, customHeaders = {}) => {
+const getAuthHeaders = (isFormData = false, customHeaders = {}) => {
   const headers = {
     Accept: 'application/json',
     ...customHeaders,
@@ -49,7 +50,7 @@ export const getAuthHeaders = (isFormData = false, customHeaders = {}) => {
   return headers;
 };
 
-export const handleApiResponse = async (response) => {
+const handleApiResponse = async (response) => {
   if (response.status === 204) return null;
 
   const payload = await response.json().catch(() => null);
@@ -96,6 +97,18 @@ export const apiJson = async (endpoint, options = {}) => {
   }
 
   const response = await fetch(apiUrl(endpoint), config);
+  const path = String(endpoint).split('?')[0];
+  const isLoginOrLogout =
+    path.endsWith('/api/auth/login') || path.endsWith('/api/auth/logout');
+
+  if (
+    response.status === 401 &&
+    !isLoginOrLogout &&
+    typeof window !== 'undefined'
+  ) {
+    window.dispatchEvent(new CustomEvent(AUTH_REQUIRED_EVENT));
+  }
+
   return handleApiResponse(response);
 };
 
