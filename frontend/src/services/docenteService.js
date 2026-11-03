@@ -1,15 +1,15 @@
-import { apiClient } from './apiClient';
+import { apiJson } from '../utils/api';
 
 export const docenteService = {
   /**
    * Obtiene la lista pública de docentes activos
    */
-  getPublicDocentes: () => apiClient('/api/docentes'),
+  getPublicDocentes: () => apiJson('/api/docentes'),
 
   /**
    * Obtiene la lista administrativa de docentes
    */
-  getAdminDocentes: () => apiClient('/api/admin/docentes'),
+  getAdminDocentes: () => apiJson('/api/admin/docentes'),
 
   /**
    * Sube una foto de docente
@@ -17,15 +17,15 @@ export const docenteService = {
   uploadFoto: async (file) => {
     const formData = new FormData();
     formData.append('foto', file);
-    return apiClient('/api/admin/docentes/upload-foto', {
+    return apiJson('/api/admin/docentes/upload-foto', {
       method: 'POST',
       body: formData,
     });
   },
 
-  create: (payload) => apiClient('/api/admin/docentes', { method: 'POST', body: payload }),
-  update: (id, payload) => apiClient(`/api/admin/docentes/${id}`, { method: 'PUT', body: payload }),
-  delete: (id) => apiClient(`/api/admin/docentes/${id}`, { method: 'DELETE' }),
+  create: (payload) => apiJson('/api/admin/docentes', { method: 'POST', body: payload }),
+  update: (id, payload) => apiJson(`/api/admin/docentes/${id}`, { method: 'PUT', body: payload }),
+  delete: (id) => apiJson(`/api/admin/docentes/${id}`, { method: 'DELETE' }),
 };
 
 export default docenteService;
