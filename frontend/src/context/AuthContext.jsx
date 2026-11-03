@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
+import { setAuthToken, removeAuthToken } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -51,6 +52,10 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const data = await authService.login(email, password);
+      if (!data?.token) {
+        throw new Error('La respuesta de autenticación no incluyó un token');
+      }
+      setAuthToken(data.token);
 
       const normalizedUser = {
         ...DEFAULT_PROFILES.admin,
@@ -70,10 +75,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    authService.logout();
-    setCurrentUser(null);
-    localStorage.removeItem('posgrado_umsa_auth');
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } finally {
+      removeAuthToken();
+      setCurrentUser(null);
+      localStorage.removeItem('posgrado_umsa_auth');
+    }
   };
 
   return (

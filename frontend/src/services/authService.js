@@ -1,5 +1,4 @@
-import { apiClient } from './apiClient';
-import { setAuthToken, removeAuthToken } from '../utils/api';
+import { apiJson } from '../utils/api';
 
 export const authService = {
   /**
@@ -14,14 +13,10 @@ export const authService = {
       password: password,
     };
 
-    const data = await apiClient('/api/auth/login', {
+    const data = await apiJson('/api/auth/login', {
       method: 'POST',
       body: payload,
     });
-
-    if (data?.token) {
-      setAuthToken(data.token);
-    }
 
     return data;
   },
@@ -31,7 +26,7 @@ export const authService = {
    * GET /api/auth/me (Bearer Token)
    */
   getMe: async () => {
-    return apiClient('/api/auth/me');
+    return apiJson('/api/auth/me');
   },
 
   /**
@@ -40,11 +35,9 @@ export const authService = {
    */
   logout: async () => {
     try {
-      await apiClient('/api/auth/logout', { method: 'POST' });
+      await apiJson('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       console.warn('Cierre de sesión local:', err.message);
-    } finally {
-      removeAuthToken();
     }
   },
 };
