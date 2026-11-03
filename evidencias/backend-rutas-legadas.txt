@@ -1,0 +1,4 @@
+| ADMINISTRADOR:
+| - Administrar ediciones y asignaciones academicas.
+    // 3. RUTAS EXCLUSIVAS DE ADMINISTRADOR
+    Route::middleware('administrador')->group(function () {
