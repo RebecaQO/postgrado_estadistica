@@ -1,16 +1,14 @@
 # Portal Web de Postgrado — Estadística UMSA
 
 ## Estructura
-- `backend/` — Laravel + Sanctum; PostgreSQL configurado como destino de dockerización.
+- `backend/` — Laravel + Sanctum.
 - `frontend/` — React + Vite.
+- PostgreSQL 17 — compatible con el dump generado por PostgreSQL 17.11.
 
-## Estado del proyecto
-Snapshot inicial versionado. Inventario de Fase 0 en `evidencias/`.
+## Arranque local
+Desde la raíz: `docker compose up -d`.
 
-## Ramas
-- `main` — estructura base.
-- `backup-pre-unificacion` — snapshot congelado.
-- `preparacion/fase-0` — documentación y preparación.
+Equivalente Sail: `cd backend && ./vendor/bin/sail up -d`.
+La API queda en `http://localhost`; Vite en `http://localhost:5173`.
 
-## Cómo levantar
-Pendiente de dockerización. `compose.yaml` es un borrador y no se ejecutó.
+La configuración local usa `backend/.env`; copia `backend/.env.example` para una instalación nueva. Los dumps de `respaldos/` se excluyen de Git porque contienen datos de aplicación.

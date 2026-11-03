@@ -38,3 +38,6 @@ desktop.ini
 *.swp
 *.log
 docker-compose.override.yml
+
+# Database dumps contain private application data
+respaldos/*.dump
