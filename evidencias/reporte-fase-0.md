@@ -17,7 +17,7 @@ FECHA: 2026-11-02 20:01
 ## Paso 3: frontend/.git
 - Opción elegida: A (pragmática).
 - `.git` del frontend verificado dentro del ZIP (HEAD, config, objects y refs).
-- Metadatos movidos a `C:\respaldos-portal\frontend-git-preservado-20261102_200029`; también permanecen dentro del ZIP.
+- Metadatos movidos a `C:\respaldos-portal\frontend-git-preservado-20261102_200029`; también permanecen dentro del ZIP.\n- Remote anterior `WebPostgrado` retirado de esos metadatos preservados; el ZIP se conserva como snapshot histórico.
 - `frontend/.git` ya no está en el árbol; los archivos de trabajo del frontend se conservaron e incorporaron al snapshot del monorepo.
 
 ## Paso 4: .env.example
@@ -28,7 +28,7 @@ FECHA: 2026-11-02 20:01
 ## Paso 5: commits y push
 - `.env` reales, `vendor/` y `node_modules/`: excluidos del commit inicial.
 - Commit inicial en `main`: `c9b04a2` — `estado inicial: backend Laravel y frontend React pre-unificacion`.
-- Push `main`: PENDIENTE (sin DNS).
+- Push `main`: PENDIENTE (sin DNS).\n- `origin` local está configurado al repo nuevo `RebecaQO/postgrado_estadistica`; consulta de refs falla por DNS.
 - Remote configurado como `https://github.com/RebecaQO/postgrado_estadistica.git`.
 
 ## Paso 6: ramas
@@ -49,4 +49,5 @@ NINGUNO. Solo documentación, configuración de plantilla `.env.example` e inven
 
 ## Próximo paso
 Restablecer DNS/red, comprobar el estado del remoto y publicar `main`, `backup-pre-unificacion` y `preparacion/fase-0`. Docker/Fase 0.B permanece pendiente.
+
 
