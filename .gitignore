@@ -1,0 +1,40 @@
+# Laravel backend
+backend/vendor/
+backend/node_modules/
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/storage/*.key
+backend/storage/logs/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/bootstrap/cache/*
+backend/public/storage
+backend/public/hot
+backend/phpunit.xml
+backend/.phpunit.result.cache
+
+# React frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/.vite/
+frontend/*.local
+
+# Never include nested repository metadata
+frontend/.git/
+.git/
+
+# OS and IDE
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.log
+docker-compose.override.yml

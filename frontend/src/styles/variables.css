@@ -1,0 +1,112 @@
+:root {
+  /* ==========================================================================
+     PALETA CORPORATIVA EN TONOS PASTEL — UMSA FCPN (POSGRADO ESTADÍSTICA)
+     ========================================================================== */
+
+  /* Fondos Principales (Tonos Pastel Suaves) */
+  --color-bg-primary: #f9f9f6;          /* Blanco hueso pastel cálido */
+  --color-bg-secondary: #f3efe6;        /* Marfil pastel suave para elevaciones */
+  --color-bg-tertiary: #f2f5f3;         /* Barra de navegación pastel menta suave */
+  --color-bg-white: #ffffff;            /* Blanco puro para tarjetas e inputs */
+  --color-bg-gradient-start: #f9f9f6;
+  --color-bg-gradient-end: #f3efe6;
+
+  /* Verde Institucional Pastel (Acción Principal) */
+  --color-green-inst: #267342;          /* Verde bosque pastel elegante */
+  --color-green-inst-hover: #1e5f35;    /* Verde hover más profundo */
+  --color-green-inst-subtle: #eaf5ec;   /* Fondo menta pastel suave */
+  --color-green-inst-border: rgba(38, 115, 66, 0.25);
+  --color-green-inst-glow: rgba(38, 115, 66, 0.15);
+  --color-green-lime: #48bb78;          /* Verde salvia / lima pastel */
+
+  /* Azul Acero Pastel (Acción Secundaria) */
+  --color-blue-steel: #4f7e9f;          /* Azul acero pastel */
+  --color-blue-steel-hover: #3d6682;    /* Hover azul suave */
+  --color-blue-steel-subtle: #edf4f9;   /* Fondo celeste pastel */
+  --color-blue-steel-border: rgba(79, 126, 159, 0.25);
+  --color-blue-cornflower: #729ec4;     /* Azul cornflower pastel */
+
+  /* Jerarquía de Textos (Alto Contraste y Suavidad Visual) */
+  --color-text-main: #33373d;           /* Grafito carbón suave para headings */
+  --color-text-muted: #5f656d;          /* Gris neutro suave para párrafos */
+  --color-text-subtle: #888e96;         /* Tono suave para leyendas y hints */
+  --color-text-inverse: #ffffff;
+
+  /* Bordes y Divisores Pastel */
+  --color-border: #dce1da;              /* Gris pastel suave */
+  --color-border-subtle: #e5eae3;       /* Delimitación ultra suave */
+  --color-border-table: #e2e7e1;        /* Grillas de tabla suaves */
+
+  /* Glassmorphism / Cards */
+  --color-glass-bg: rgba(255, 255, 255, 0.92);
+  --color-glass-bg-hover: rgba(255, 255, 255, 0.98);
+  --color-glass-border: #dce1da;
+  --color-glass-border-hover: #c4cdc2;
+  --color-glass-border-focus: #267342;
+  --color-glass-card: #ffffff;
+
+  /* Tabla Académica Pastel */
+  --color-table-header-bg: #eaf0eb;     /* Salvia pastel claro */
+  --color-table-row-even: #ffffff;      /* Blanco */
+  --color-table-row-odd: #f6f4ee;       /* Marfil pastel sutil */
+
+  /* Estados del Sistema Pastel */
+  --color-status-success: #267342;      /* Verde pastel */
+  --color-status-success-bg: #eaf5ec;
+  --color-status-success-border: #bce3c7;
+
+  --color-status-warning: #9e7512;      /* Ámbar pastel */
+  --color-status-warning-bg: #fdf7e7;
+  --color-status-warning-border: #f3df9b;
+
+  --color-status-danger: #b3392f;       /* Terracota / rojo pastel */
+  --color-status-danger-bg: #fbeeed;
+  --color-status-danger-border: #f4c2be;
+
+  --color-status-info: #4f7e9f;         /* Azul acero pastel */
+  --color-status-info-bg: #edf4f9;
+  --color-status-info-border: #c6deee;
+
+  /* Pie de Página (Footer Pastel) */
+  --color-footer-bg: #dce0dc;           /* Gris pastel neutro suave */
+  --color-footer-text: #33373d;         /* Texto grafito legible */
+
+  /* Tipografías */
+  --font-family-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-family-heading: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  --font-family-mono: 'JetBrains Mono', monospace;
+
+  /* Sombras Suaves */
+  --shadow-xs: 0 1px 2px 0 rgba(51, 55, 61, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(51, 55, 61, 0.06), 0 1px 2px -1px rgba(51, 55, 61, 0.04);
+  --shadow-md: 0 4px 16px -2px rgba(51, 55, 61, 0.08), 0 2px 6px -2px rgba(51, 55, 61, 0.04);
+  --shadow-lg: 0 12px 32px -4px rgba(51, 55, 61, 0.1), 0 4px 12px -2px rgba(51, 55, 61, 0.05);
+  --shadow-xl: 0 20px 45px -6px rgba(51, 55, 61, 0.12), 0 8px 16px -4px rgba(51, 55, 61, 0.06);
+  --shadow-glow-green: 0 8px 24px -4px rgba(38, 115, 66, 0.2);
+  --shadow-glow-blue: 0 8px 24px -4px rgba(79, 126, 159, 0.18);
+
+  /* Transiciones */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Radios */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-full: 9999px;
+
+  /* Aliases de compatibilidad */
+  --color-accent-orange: #267342;
+  --color-accent-orange-hover: #1e5f35;
+  --color-accent-orange-subtle: #eaf5ec;
+  --color-accent-orange-border: rgba(38, 115, 66, 0.25);
+  --color-accent-orange-glow: rgba(38, 115, 66, 0.15);
+  --color-umsa-blue: #4f7e9f;
+  --color-umsa-blue-dark: #33373d;
+  --color-umsa-blue-subtle: #edf4f9;
+  --color-umsa-blue-border: rgba(79, 126, 159, 0.25);
+  --color-umsa-gold: #9e7512;
+  --color-umsa-gold-subtle: #fdf7e7;
+}
