@@ -73,6 +73,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/defensas-tesis', [\App\Http\Controllers\Api\DefensaTesisController::class, 'index']);
     Route::get('/defensas-tesis/{id}', [\App\Http\Controllers\Api\DefensaTesisController::class, 'show']);
 
+    // SUBMODULO 4.3: INFORMACION INSTITUCIONAL (CONSULTA)
+    Route::get('/institucion', [\App\Http\Controllers\Api\InstitucionController::class, 'show']);
+    Route::get('/institucion/info', [\App\Http\Controllers\Api\InstitucionController::class, 'show']);
+
     Route::get(
         '/auth/me',
         [AutenticacionController::class, 'perfilApi']
@@ -423,5 +427,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/defensas-tesis', [\App\Http\Controllers\Api\DefensaTesisController::class, 'store']);
         Route::put('/defensas-tesis/{id}', [\App\Http\Controllers\Api\DefensaTesisController::class, 'update']);
         Route::delete('/defensas-tesis/{id}', [\App\Http\Controllers\Api\DefensaTesisController::class, 'destroy']);
+
+        // ==========================================
+        // SUBMODULO 4.3: INFORMACION INSTITUCIONAL (ADMIN)
+        // ==========================================
+
+        Route::put('/institucion', [\App\Http\Controllers\Api\InstitucionController::class, 'update']);
+        Route::put('/institucion/info', [\App\Http\Controllers\Api\InstitucionController::class, 'update']);
+        Route::put('/admin/institucion/info', [\App\Http\Controllers\Api\InstitucionController::class, 'update']);
     });
 });
