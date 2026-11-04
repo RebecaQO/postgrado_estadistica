@@ -6,43 +6,44 @@ use Illuminate\Database\Eloquent\Model;
 
 class DefensaTesis extends Model
 {
-    // Tabla de PostgreSQL
     protected $table = 'defensa_tesis';
 
-    // Clave primaria
     protected $primaryKey = 'id_defensa';
 
-    // ID generado automaticamente
     public $incrementing = true;
 
-    // Tipo de identificador BIGINT
     protected $keyType = 'int';
 
-    // La tabla no utiliza timestamps
-    public $timestamps = false;
+    public $timestamps = true;
 
-    // Campos permitidos
     protected $fillable = [
+        'id_edicion',
+        'titulo_tesis',
+        'autor',
+        'tutor',
         'fecha_defensa',
         'hora_defensa',
+        'lugar',
         'lugar_defensa',
+        'resultado',
         'estado',
-        'id_edicion',
+        'observaciones',
     ];
 
-    // Conversion de tipos
-    protected function casts(): array
-    {
-        return [
-            'id_defensa' => 'integer',
-            'id_edicion' => 'integer',
-            'fecha_defensa' => 'date:Y-m-d',
-        ];
-    }
+    protected $casts = [
+        'id_defensa' => 'integer',
+        'id_edicion' => 'integer',
+        'fecha_defensa' => 'date:Y-m-d',
+    ];
 
-    // ========================================
-    // RELACION CON EDICION DE PROGRAMA
-    // ========================================
+    protected $appends = [
+        'id',
+    ];
+
+    public function getIdAttribute(): ?int
+    {
+        return $this->attributes['id_defensa'] ?? null;
+    }
 
     public function edicion()
     {

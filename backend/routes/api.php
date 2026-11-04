@@ -69,6 +69,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // AUTENTICACION
     // ==============================================
 
+    // SUBMODULO 4.2: DEFENSAS DE TESIS (CONSULTA)
+    Route::get('/defensas-tesis', [\App\Http\Controllers\Api\DefensaTesisController::class, 'index']);
+    Route::get('/defensas-tesis/{id}', [\App\Http\Controllers\Api\DefensaTesisController::class, 'show']);
+
     Route::get(
         '/auth/me',
         [AutenticacionController::class, 'perfilApi']
@@ -411,5 +415,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('usuarios', \App\Http\Controllers\Api\UsuarioController::class);
         Route::patch('usuarios/{usuario}/desactivar', [\App\Http\Controllers\Api\UsuarioController::class, 'desactivar']);
         Route::patch('usuarios/{usuario}/reactivar', [\App\Http\Controllers\Api\UsuarioController::class, 'reactivar']);
+
+        // ==========================================
+        // SUBMODULO 4.2: DEFENSAS DE TESIS (ADMIN)
+        // ==========================================
+
+        Route::post('/defensas-tesis', [\App\Http\Controllers\Api\DefensaTesisController::class, 'store']);
+        Route::put('/defensas-tesis/{id}', [\App\Http\Controllers\Api\DefensaTesisController::class, 'update']);
+        Route::delete('/defensas-tesis/{id}', [\App\Http\Controllers\Api\DefensaTesisController::class, 'destroy']);
     });
 });
