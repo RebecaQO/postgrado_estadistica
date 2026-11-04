@@ -1,0 +1,14 @@
+# Inventario de Rutas y Vistas del Frontend (SPA basada en Tabs y Hash)
+
+1. Publicas:
+- Tab 'inicio' (URL / ó #) -> Home (HeroSection, PromotionalBannerSection, FeaturedPrograms, KpiSection, ImpactSection, FAQSection)
+- Tab 'programas' (URL #programas) -> ProgramsView (Listado de programas con filtros)
+- Tab 'programa-detalle' (URL #programa/:id) -> ProgramDetailView (Detalle completo del programa, malla curricular, inversión y requisitos)
+- Tab 'admision' (URL tab 'admision') -> AdmissionView (Convocatorias de admisión activas y cronograma)
+- Tab 'institucion' (URL tab 'institucion') -> InstitutionView (Información institucional de la Carrera e IETA)
+- Tab 'contacto' (URL tab 'contacto') -> ContactView (Canales de contacto y secretaría)
+- Tab 'normativa' (URL tab 'normativa') -> RegulationsView (Normativas y reglamentos)
+- Tab 'noticias' (URL tab 'noticias') -> NewsView (Avisos y comunicados)
+
+2. Protegida / Admin:
+- Tab 'portal-admin' (requiere autenticación con rol de Administrador) -> AdminPortal

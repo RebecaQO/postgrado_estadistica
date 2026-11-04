@@ -1,0 +1,37 @@
+
+> posgrado-estadistica-umsa@1.0.0 build
+> node ./node_modules/vite/bin/vite.js build
+
+vite v6.4.5 building for production...
+transforming...
+✓ 2122 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                  1.42 kB │ gzip:   0.79 kB
+dist/assets/slide2-6vLHnAWB.jpg                                 45.05 kB
+dist/assets/slide3-DbKlo52p.jpg                                 48.05 kB
+dist/assets/banner_ciencia-x45YgkTR.jpeg                       132.89 kB
+dist/assets/cotacota-UmuzIawr.jpg                              134.93 kB
+dist/assets/monoblock-C7BFw51k.jpg                             173.72 kB
+dist/assets/slide1-B6SWflTf.jpg                                199.55 kB
+dist/assets/post_diplomado_data_mining-7EglxoOC.jpg            342.52 kB
+dist/assets/slide4-BUcKE4bN.jpg                                371.82 kB
+dist/assets/logo_posgrado-BJWAntjI.jpg                         483.18 kB
+dist/assets/card_maestria_terminal_estadistica-BNEcfM5v.png    766.64 kB
+dist/assets/card_maestria_ciencia_datos-lLW38_aT.png           784.36 kB
+dist/assets/banner_maestria_datos-Bb-f4tZ6.png                 967.20 kB
+dist/assets/post_maestria_ciencia_datos-TSyPNXuV.png           990.48 kB
+dist/assets/post_maestria_terminal_estadistica-CzGiRDDX.png  1,002.82 kB
+dist/assets/card_diplomado_data_mining-DrK1o-g1.png          1,015.77 kB
+dist/assets/index-A0zpL6vH.css                                  53.69 kB │ gzip:  10.69 kB
+dist/assets/index-DdKC73On.js                                  636.73 kB │ gzip: 159.23 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.72s
+
+> posgrado-estadistica-umsa@1.0.0 postbuild
+> node -e "import('fs').then(fs => fs.cpSync('dist', 'build', {recursive: true}))"
+
