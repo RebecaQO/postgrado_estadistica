@@ -31,7 +31,35 @@ class Docente extends Model
     // Conversion de tipos
     protected $casts = [
         'id_doc' => 'integer',
+        'activo' => 'boolean',
     ];
+
+    protected $appends = [
+        'id',
+        'nombre',
+        'apellido',
+        'nombre_completo',
+    ];
+
+    public function getIdAttribute(): ?int
+    {
+        return $this->id_doc;
+    }
+
+    public function getNombreAttribute(): ?string
+    {
+        return $this->nombre_doc;
+    }
+
+    public function getApellidoAttribute(): ?string
+    {
+        return $this->apellido_doc;
+    }
+
+    public function getNombreCompletoAttribute(): string
+    {
+        return trim("{$this->nombre_doc} {$this->apellido_doc}");
+    }
 
     // ========================================
     // RELACION CON EDICIONES
