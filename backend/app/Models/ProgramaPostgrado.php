@@ -25,10 +25,12 @@ class ProgramaPostgrado extends Model
         'perfil_aspirante',
         'perfil_egreso',
         'enlace_pdf_programa',
+        'activo',
     ];
 
     protected $casts = [
         'id_programa' => 'integer',
+        'activo' => 'boolean',
     ];
 
     protected $appends = [
@@ -67,7 +69,7 @@ class ProgramaPostgrado extends Model
 
     public function getActivoAttribute(): bool
     {
-        return true;
+        return (bool) ($this->attributes['activo'] ?? true);
     }
 
     // ========================================

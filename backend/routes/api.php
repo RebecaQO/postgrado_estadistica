@@ -58,6 +58,21 @@ Route::get(
     [ProgramaPostgradoController::class, 'listarProgramasActivos']
 );
 
+Route::get(
+    '/programas/{id}',
+    [ProgramaPostgradoController::class, 'obtenerPrograma']
+);
+
+Route::get(
+    '/programas/{id}/malla',
+    [MallaCurricularController::class, 'listarMallasPorPrograma']
+);
+
+Route::get(
+    '/programas/{id}/mallas',
+    [MallaCurricularController::class, 'listarMallasPorPrograma']
+);
+
 
 // ======================================================
 // 2. RUTAS AUTENTICADAS
@@ -96,11 +111,6 @@ Route::middleware('auth:sanctum')->group(function () {
         [ProgramaPostgradoController::class, 'listarProgramas']
     );
 
-    Route::get(
-        '/programas/{id}',
-        [ProgramaPostgradoController::class, 'obtenerPrograma']
-    );
-
     // ==============================================
     // MAESTRIAS
     // ==============================================
@@ -136,16 +146,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get(
         '/mallas',
         [MallaCurricularController::class, 'listarMallas']
-    );
-
-    Route::get(
-        '/programas/{id}/mallas',
-        [MallaCurricularController::class, 'listarMallasPorPrograma']
-    );
-
-    Route::get(
-        '/programas/{id}/malla',
-        [MallaCurricularController::class, 'listarMallasPorPrograma']
     );
 
     Route::get(
@@ -247,6 +247,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete(
             '/programas/{id}',
             [ProgramaPostgradoController::class, 'eliminarPrograma']
+        );
+
+        Route::patch(
+            '/programas/{id}/desactivar',
+            [ProgramaPostgradoController::class, 'desactivarPrograma']
+        );
+
+        Route::patch(
+            '/programas/{id}/reactivar',
+            [ProgramaPostgradoController::class, 'reactivarPrograma']
         );
 
         // ==========================================

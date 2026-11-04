@@ -95,8 +95,9 @@ class ProgramaPostgradoController extends Controller
         $programa = ProgramaPostgrado::with([
             'maestria',
             'diplomado',
-            'mallas',
-            'ediciones',
+            'mallas.modulos.materias.materia',
+            'mallas.materiasDiplomado.materia',
+            'ediciones.docentes',
         ])->find($id);
 
         if (!$programa) {
@@ -108,6 +109,70 @@ class ProgramaPostgradoController extends Controller
 
         return response()->json([
             'success' => true,
+            'data' => $programa,
+        ], 200);
+    }
+
+    // ========================================
+    // DESACTIVAR PROGRAMA
+    // ========================================
+
+    public function desactivarPrograma(int $id)
+    {
+        $programa = ProgramaPostgrado::find($id);
+
+        if (!$programa) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Programa no encontrado',
+            ], 404);
+        }
+
+        if (!$programa->activo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El programa ya está inactivo.',
+            ], 409);
+        }
+
+        $programa->activo = false;
+        $programa->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Programa desactivado correctamente.',
+            'data' => $programa,
+        ], 200);
+    }
+
+    // ========================================
+    // REACTIVAR PROGRAMA
+    // ========================================
+
+    public function reactivarPrograma(int $id)
+    {
+        $programa = ProgramaPostgrado::find($id);
+
+        if (!$programa) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Programa no encontrado',
+            ], 404);
+        }
+
+        if ($programa->activo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El programa ya está activo.',
+            ], 409);
+        }
+
+        $programa->activo = true;
+        $programa->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Programa reactivado correctamente.',
             'data' => $programa,
         ], 200);
     }
