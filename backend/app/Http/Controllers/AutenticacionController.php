@@ -15,24 +15,25 @@ class AutenticacionController extends Controller
 
     public function loginApi(Request $request)
     {
-        // Validar los datos enviados desde el frontend.
+        // Validar que se reciba password y al menos nombre o email.
         $datos = $request->validate([
-            'nombre' => [
-                'required',
-                'string',
-                'max:50',
-            ],
-            'password' => [
-                'required',
-                'string',
-            ],
+            'password' => ['required', 'string'],
         ]);
 
-        // Buscar el usuario en PostgreSQL.
-        $usuario = Usuario::where(
-            'nombre',
-            $datos['nombre']
-        )->first();
+        $identifier = $request->input('nombre') ?? $request->input('email');
+        if (empty($identifier)) {
+            return response()->json([
+                'message' => 'The nombre or email field is required.',
+                'errors' => [
+                    'nombre' => ['The nombre field is required when email is not present.'],
+                ],
+            ], 422);
+        }
+
+        // Buscar el usuario en PostgreSQL por nombre de usuario o correo electronico.
+        $usuario = Usuario::where('nombre', $identifier)
+            ->orWhere('email', $identifier)
+            ->first();
 
         // Comprobar usuario y contraseña.
         if (
