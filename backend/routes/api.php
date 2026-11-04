@@ -131,6 +131,11 @@ Route::middleware('auth:sanctum')->group(function () {
     );
 
     Route::get(
+        '/programas/{id}/malla',
+        [MallaCurricularController::class, 'listarMallasPorPrograma']
+    );
+
+    Route::get(
         '/mallas/{id}',
         [MallaCurricularController::class, 'obtenerMalla']
     );
