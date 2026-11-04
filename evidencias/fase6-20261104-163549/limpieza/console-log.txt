@@ -1,0 +1,2 @@
+frontend/src/components/portals/ProgramEditorFixed.jsx:419:      console.log('[ProgramEditor] Enviando al servidor:', JSON.stringify(payload, null, 2));
+frontend/src/components/portals/ProgramEditorFixed.jsx:423:      console.log('[ProgramEditor] Respuesta del servidor:', result);

@@ -416,11 +416,8 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
         selectedTeachers: finalTeachers,
       };
 
-      console.log('[ProgramEditor] Enviando al servidor:', JSON.stringify(payload, null, 2));
-
       const result = await programaService.saveWizardProgram(payload);
 
-      console.log('[ProgramEditor] Respuesta del servidor:', result);
       setSuccessMessage(`¡El programa "${cleanProgram.name}" se guardó exitosamente en el sistema académico!`);
       
       if (onSaved) {

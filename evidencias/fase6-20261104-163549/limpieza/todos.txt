@@ -1,0 +1,2 @@
+backend/app/Http/Controllers/ModuloController.php:13:    // LISTAR TODOS LOS MODULOS
+backend/app/Http/Controllers/ProgramaPostgradoController.php:69:    // LISTAR TODOS LOS PROGRAMAS - GESTION

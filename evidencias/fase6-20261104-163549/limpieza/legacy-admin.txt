@@ -1,0 +1,5 @@
+frontend/src/services/adminService.js:4:  getUsuarios: () => apiJson('/api/admin/usuarios'),
+frontend/src/services/adminService.js:5:  createUsuario: (payload) => apiJson('/api/admin/usuarios', { method: 'POST', body: payload }),
+frontend/src/services/adminService.js:6:  updateUsuarioEstado: (id, estado) => apiJson(`/api/admin/usuarios/${id}/estado`, { method: 'PATCH', body: { estado } }),
+frontend/src/services/adminService.js:7:  deleteUsuario: (id) => apiJson(`/api/admin/usuarios/${id}`, { method: 'DELETE' }),
+frontend/src/services/adminService.js:8:  getRoles: () => apiJson('/api/admin/roles'),
