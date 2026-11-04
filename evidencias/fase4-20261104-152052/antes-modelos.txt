@@ -1,0 +1,13 @@
+DefensaTesis.php
+Diplomado.php
+Docente.php
+EdicionPrograma.php
+Maestria.php
+MallaCurricular.php
+Materia.php
+MateriaMaestria.php
+Modulo.php
+ModuloDiplomado.php
+ProgramaPostgrado.php
+User.php
+Usuario.php
