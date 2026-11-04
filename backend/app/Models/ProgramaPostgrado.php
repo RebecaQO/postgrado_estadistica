@@ -31,6 +31,45 @@ class ProgramaPostgrado extends Model
         'id_programa' => 'integer',
     ];
 
+    protected $appends = [
+        'id',
+        'title',
+        'type',
+        'area',
+        'description',
+        'activo',
+    ];
+
+    public function getIdAttribute(): ?int
+    {
+        return $this->id_programa;
+    }
+
+    public function getTitleAttribute(): ?string
+    {
+        return $this->nombre_programa;
+    }
+
+    public function getTypeAttribute(): ?string
+    {
+        return $this->tipo_programa;
+    }
+
+    public function getAreaAttribute(): ?string
+    {
+        return $this->area_conocimiento;
+    }
+
+    public function getDescriptionAttribute(): ?string
+    {
+        return $this->descripcion;
+    }
+
+    public function getActivoAttribute(): bool
+    {
+        return true;
+    }
+
     // ========================================
     // RELACION CON MAESTRIA
     // ========================================
