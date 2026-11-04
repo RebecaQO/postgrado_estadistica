@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import UsuariosPanel from './panels/UsuariosPanel';
 import {
   programaService,
   adminService,
@@ -1293,89 +1294,7 @@ export const AdminPortal = ({ onExitAdmin }) => {
 
             {/* 3. SECCIÓN USUARIOS */}
             {activeTab === 'usuarios' && (
-              <div className="animate-fade-in">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.35rem', color: 'var(--color-text-main)', fontWeight: 800, margin: 0 }}>
-                      Usuarios y Cuentas de Acceso
-                    </h3>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                      Administra cuentas para postulantes, docentes, estudiantes y administradores.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setUserModalOpen(true)}
-                    className="btn btn-primary"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                  >
-                    <Plus size={16} />
-                    <span>Crear Usuario</span>
-                  </button>
-                </div>
-
-                <div className="data-table-container">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>ID Usuario</th>
-                        <th>Email / Cuenta</th>
-                        <th>Tipo / Rol</th>
-                        <th>Estado</th>
-                        <th>Verificado</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usuarios.map((usr) => {
-                        const isActivo = usr.estado === 'Activo';
-                        return (
-                          <tr key={usr.id}>
-                            <td style={{ fontFamily: 'var(--font-family-mono)', fontWeight: 700 }}>
-                              {usr.id}
-                            </td>
-                            <td>
-                              <strong>{usr.email}</strong>
-                            </td>
-                            <td>
-                              <span className={`badge ${usr.tipo === 'Administrador' ? 'badge-green-inst' : (usr.tipo === 'Docente' ? 'badge-blue' : 'badge-yellow')}`}>
-                                {usr.tipo}
-                              </span>
-                            </td>
-                            <td>
-                              <button
-                                onClick={() => handleToggleUserStatus(usr.id, usr.estado)}
-                                className={`badge ${isActivo ? 'badge-green' : 'badge-red'}`}
-                                style={{ cursor: 'pointer', border: 'none' }}
-                                title="Clic para alternar estado"
-                              >
-                                {isActivo ? '✓ Activo' : '✕ Inactivo'}
-                              </button>
-                            </td>
-                            <td>
-                              {usr.email_verificado ? (
-                                <span style={{ color: 'var(--color-green-inst)', fontWeight: 700 }}>✓ Sí</span>
-                              ) : (
-                                <span style={{ color: 'var(--color-text-subtle)' }}>Pendiente</span>
-                              )}
-                            </td>
-                            <td>
-                              <button
-                                onClick={() => handleDeleteUser(usr.id)}
-                                className="btn btn-secondary btn-sm"
-                                style={{ padding: '0.35rem 0.6rem', color: 'var(--color-status-danger)' }}
-                                title="Eliminar usuario"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <UsuariosPanel />
             )}
 
             {/* SECCIÓN DEFENSAS DE TESIS & GRADO */}

@@ -403,5 +403,13 @@ Route::middleware('auth:sanctum')->group(function () {
             '/registros-academicos',
             [RegistroAcademicoController::class, 'registrar']
         );
+
+        // ==========================================
+        // SUBMODULO 4.1: GESTION DE USUARIOS
+        // ==========================================
+
+        Route::apiResource('usuarios', \App\Http\Controllers\Api\UsuarioController::class);
+        Route::patch('usuarios/{usuario}/desactivar', [\App\Http\Controllers\Api\UsuarioController::class, 'desactivar']);
+        Route::patch('usuarios/{usuario}/reactivar', [\App\Http\Controllers\Api\UsuarioController::class, 'reactivar']);
     });
 });

@@ -21,6 +21,8 @@ return Application::configure(
         $middleware->alias([
             'administrador' =>
                 \App\Http\Middleware\Administrador::class,
+            'role' =>
+                \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
 
     })

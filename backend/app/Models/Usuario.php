@@ -26,8 +26,10 @@ class Usuario extends Authenticatable
     // Campos permitidos.
     protected $fillable = [
         'nombre',
+        'email',
         'password',
         'rol',
+        'activo',
     ];
 
     // Ocultar información sensible.
@@ -35,11 +37,21 @@ class Usuario extends Authenticatable
         'password',
     ];
 
+    protected $appends = [
+        'id',
+    ];
+
+    public function getIdAttribute(): ?int
+    {
+        return $this->id_usuario;
+    }
+
     // Conversión de tipos.
     protected function casts(): array
     {
         return [
             'id_usuario' => 'integer',
+            'activo' => 'boolean',
             'password' => 'hashed',
         ];
     }
