@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
     const password = requestPayload?.password || '';
 
     if (!email || !password) {
-      setAuthError('Debe ingresar correo y contraseña');
+      setAuthError('Debe ingresar usuario o correo y contraseña');
       return false;
     }
 

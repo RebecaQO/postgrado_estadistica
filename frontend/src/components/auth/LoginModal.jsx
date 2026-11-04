@@ -13,8 +13,8 @@ import {
 export const LoginModal = ({ onLoginSuccess }) => {
   const { loginModalOpen, setLoginModalOpen, loginAs, authError } = useAuth();
 
-  const [emailInput, setEmailInput] = useState('admin@umsa.bo');
-  const [passwordInput, setPasswordInput] = useState('Admin123!');
+  const [emailInput, setEmailInput] = useState('admin');
+  const [passwordInput, setPasswordInput] = useState('Admin1234!');
   const [loading, setLoading] = useState(false);
 
   if (!loginModalOpen) return null;
@@ -114,17 +114,17 @@ export const LoginModal = ({ onLoginSuccess }) => {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                <span>Correo Institucional</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>admin@umsa.bo</span>
+                <span>Usuario o Correo Institucional</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>admin o admin@posgrado.umsa.bo</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail size={17} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-subtle)' }} />
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="admin@umsa.bo"
+                  placeholder="admin o admin@posgrado.umsa.bo"
                   className="form-control"
                   style={{ paddingLeft: '2.6rem', height: '48px', fontSize: '0.95rem' }}
                 />
@@ -134,7 +134,7 @@ export const LoginModal = ({ onLoginSuccess }) => {
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                 <span>Contraseña</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>Admin123!</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>Admin1234!</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock size={17} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-subtle)' }} />
