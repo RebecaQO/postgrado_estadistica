@@ -1,0 +1,1 @@
+OK: Ningún archivo .env sensible está trackeado en git
