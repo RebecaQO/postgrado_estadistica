@@ -24,24 +24,71 @@ export const ProgramDetailModal = ({ program: initialProgram, onClose, onApply }
   const [docentesLoading, setDocentesLoading] = useState(true);
 
   useEffect(() => {
-    if (!initialProgram?.id) return;
+    const targetId = initialProgram?.id ?? initialProgram?.id_programa;
+    if (!targetId) return;
 
-    const fetchMalla = async () => {
+    const fetchFullData = async () => {
       try {
         setLoading(true);
-        const data = await programaService.getMalla(initialProgram.id);
-        if (data) {
-          setProgramData(data);
+        const resp = await programaService.getById(targetId);
+        const raw = resp?.data ?? resp;
+        if (!raw) return;
+
+        const edicion = raw.ediciones?.[0] ?? {};
+        const mallaActiva = raw.mallas?.find(m => m.activo) ?? raw.mallas?.[0] ?? {};
+        const esMaestria = (raw.tipo_programa || '').toLowerCase().includes('maestr');
+
+        // Construir curriculum desde malla
+        let curriculum = [];
+        if (esMaestria && Array.isArray(mallaActiva.modulos)) {
+          curriculum = mallaActiva.modulos.map((mod) => ({
+            semester: mod.nombre_mod,
+            modules: (mod.materias || []).map((m) => ({
+              name: m.materia?.nombre_mat ?? `Materia ${m.id_mat}`,
+              credits: m.pivot?.creditos ?? 0,
+              hours: m.pivot?.carga_horaria ?? 0,
+              desc: m.materia?.descripcion ?? '',
+            })),
+          }));
+        } else if (!esMaestria && Array.isArray(mallaActiva.materias_diplomado)) {
+          curriculum = [{
+            semester: mallaActiva.nombre_malla || 'Plan de Estudios',
+            modules: (mallaActiva.materias_diplomado || []).map((m) => ({
+              name: m.materia?.nombre_mat ?? `Materia ${m.id_mat}`,
+              credits: m.pivot?.creditos ?? 0,
+              hours: m.pivot?.carga_horaria ?? 0,
+              desc: m.materia?.descripcion ?? '',
+            })),
+          }];
         }
+
+        setProgramData({
+          id: raw.id_programa ?? raw.id,
+          title: raw.nombre_programa,
+          type: raw.tipo_programa,
+          description: raw.descripcion,
+          perfil_aspirante: raw.perfil_aspirante,
+          perfil_egreso: raw.perfil_egreso,
+          requisitos_admision: edicion.requisitos,
+          duration: edicion.duracion,
+          modality: edicion.modalidad_titulacion,
+          credits: edicion.creditos,
+          enlace_convocatoria_drive: edicion.convocatoria,
+          enlace_pdf_programa: raw.enlace_pdf_programa,
+          curriculum,
+          mallas: raw.mallas,
+          ediciones: raw.ediciones,
+          activo: raw.activo,
+        });
       } catch (err) {
-        console.error('Error cargando malla:', err);
+        console.error('Error cargando datos del programa:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMalla();
-  }, [initialProgram?.id]);
+    fetchFullData();
+  }, [initialProgram?.id, initialProgram?.id_programa]);
 
   // Fetch docentes
   useEffect(() => {

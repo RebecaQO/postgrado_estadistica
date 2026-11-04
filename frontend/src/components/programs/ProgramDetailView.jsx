@@ -124,9 +124,66 @@ export const ProgramDetailView = ({ programId, program: initialProgram, onBack, 
     const fetchFullData = async () => {
       try {
         setLoading(true);
-        const data = await programaService.getMalla(targetId);
-        if (isMounted && data) {
-          setProgramData(data);
+        const resp = await programaService.getById(targetId);
+        // La API devuelve { success, data: { ... } } o el objeto directo
+        const raw = resp?.data ?? resp;
+        if (isMounted && raw) {
+          // Normalizar la respuesta de la API al formato que espera el componente
+          const edicion = raw.ediciones?.[0] ?? {};
+          const mallaActiva = raw.mallas?.find(m => m.activo) ?? raw.mallas?.[0] ?? {};
+          const esMaestria = (raw.tipo_programa || '').toLowerCase().includes('maestr');
+
+          // Construir curriculum desde malla
+          let curriculum = [];
+          if (esMaestria && Array.isArray(mallaActiva.modulos)) {
+            curriculum = mallaActiva.modulos.map((mod) => ({
+              semester: mod.nombre_mod,
+              modules: (mod.materias || []).map((m) => ({
+                name: m.materia?.nombre_mat ?? `Materia ${m.id_mat}`,
+                credits: m.pivot?.creditos ?? 0,
+                hours: m.pivot?.carga_horaria ?? 0,
+                desc: m.materia?.descripcion ?? '',
+              })),
+            }));
+          } else if (!esMaestria && Array.isArray(mallaActiva.materias_diplomado)) {
+            curriculum = [{
+              semester: mallaActiva.nombre_malla || 'Plan de Estudios',
+              modules: (mallaActiva.materias_diplomado || []).map((m) => ({
+                name: m.materia?.nombre_mat ?? `Materia ${m.id_mat}`,
+                credits: m.pivot?.creditos ?? 0,
+                hours: m.pivot?.carga_horaria ?? 0,
+                desc: m.materia?.descripcion ?? '',
+              })),
+            }];
+          }
+
+          const normalized = {
+            // Campos de identidad
+            id: raw.id_programa ?? raw.id,
+            id_programa: raw.id_programa ?? raw.id,
+            title: raw.nombre_programa,
+            type: raw.tipo_programa,
+            area: raw.area_conocimiento,
+            description: raw.descripcion,
+            // Perfil académico
+            perfil_aspirante: raw.perfil_aspirante,
+            perfil_egreso: raw.perfil_egreso,
+            // Desde edición activa
+            duration: edicion.duracion,
+            modality: edicion.modalidad_titulacion,
+            credits: edicion.creditos,
+            modalidad_titulacion: edicion.modalidad_titulacion,
+            requisitos_admision: edicion.requisitos,
+            enlace_convocatoria_drive: edicion.convocatoria,
+            enlace_pdf_programa: raw.enlace_pdf_programa,
+            // Malla curricular normalizada
+            curriculum,
+            // Raw para acceso directo
+            mallas: raw.mallas,
+            ediciones: raw.ediciones,
+            activo: raw.activo,
+          };
+          setProgramData(normalized);
         }
       } catch (err) {
         console.warn('Error cargando datos del programa:', err);
