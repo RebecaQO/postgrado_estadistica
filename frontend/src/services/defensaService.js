@@ -6,8 +6,13 @@ export const defensaService = {
    */
   getDefensasTesis: () => apiJson('/api/defensas-tesis'),
 
-  save: (payload) => apiJson('/api/admin/defensas-tesis', { method: 'POST', body: payload }),
-  delete: (id) => apiJson(`/api/admin/defensas-tesis/${id}`, { method: 'DELETE' }),
+  save: (payload) => {
+    if (payload.id) {
+      return apiJson(`/api/defensas-tesis/${payload.id}`, { method: 'PUT', body: payload });
+    }
+    return apiJson('/api/defensas-tesis', { method: 'POST', body: payload });
+  },
+  delete: (id) => apiJson(`/api/defensas-tesis/${id}`, { method: 'DELETE' }),
 };
 
 export default defensaService;
