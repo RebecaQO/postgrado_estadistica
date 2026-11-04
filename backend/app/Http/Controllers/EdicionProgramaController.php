@@ -430,4 +430,35 @@ class EdicionProgramaController extends Controller
             'message' => 'Edición eliminada correctamente',
         ], 200);
     }
+
+    // ========================================
+    // LISTAR CONVOCATORIAS PASADAS / HISTORICAS
+    // ========================================
+
+    public function listarConvocatoriasPasadas()
+    {
+        $ediciones = EdicionPrograma::with(['programa'])
+            ->orderBy('fecha_inicio', 'desc')
+            ->get();
+
+        $resultado = $ediciones->map(function ($edicion) {
+            $gestion = $edicion->fecha_inicio ? substr($edicion->fecha_inicio, 0, 4) : date('Y');
+            return [
+                'id' => $edicion->id_edicion,
+                'id_edicion' => $edicion->id_edicion,
+                'gestion' => $gestion,
+                'nivel' => $edicion->programa?->tipo_programa ?? 'Postgrado',
+                'titulo' => $edicion->nombre_edicion ?? "Convocatoria Gestión {$gestion}",
+                'programa' => $edicion->programa?->nombre_programa ?? 'Programa de Postgrado',
+                'resolucion_hcu' => 'Res. HCU ' . $gestion,
+                'enlace_pdf' => $edicion->convocatoria ?? null,
+                'estado' => $edicion->estado,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $resultado,
+        ], 200);
+    }
 }

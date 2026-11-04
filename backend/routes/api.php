@@ -43,6 +43,11 @@ Route::get(
     [EdicionProgramaController::class, 'listarConvocatorias']
 );
 
+Route::get(
+    '/convocatorias-pasadas',
+    [EdicionProgramaController::class, 'listarConvocatoriasPasadas']
+);
+
 Route::post(
     '/auth/login',
     [AutenticacionController::class, 'loginApi']
