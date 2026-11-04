@@ -6,9 +6,9 @@ export const convocatoriaService = {
    */
   getConvocatoriasPasadas: () => apiJson('/api/convocatorias-pasadas'),
 
-  create: (payload) => apiJson('/api/admin/convocatorias-pasadas', { method: 'POST', body: payload }),
-  sincronizarEdiciones: () => apiJson('/api/admin/convocatorias-pasadas/sincronizar-ediciones', { method: 'POST' }),
-  delete: (id) => apiJson(`/api/admin/convocatorias-pasadas/${id}`, { method: 'DELETE' }),
+  create: (payload) => apiJson('/api/ediciones', { method: 'POST', body: payload }),
+  sincronizarEdiciones: () => apiJson('/api/convocatorias-pasadas'),
+  delete: (id) => apiJson(`/api/ediciones/${id}`, { method: 'DELETE' }),
 };
 
 export default convocatoriaService;
