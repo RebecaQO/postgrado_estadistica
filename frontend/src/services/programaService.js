@@ -26,7 +26,11 @@ export const programaService = {
   create: (payload) => apiJson('/api/programas', { method: 'POST', body: payload }),
   update: (id, payload) => apiJson(`/api/programas/${id}`, { method: 'PUT', body: payload }),
   delete: (id) => apiJson(`/api/programas/${id}`, { method: 'DELETE' }),
-  updateStatus: (id, estado) => apiJson(`/api/programas/${id}/desactivar`, { method: 'PATCH' }),
+  updateStatus: (id, estado) => apiJson(
+    estado === 'Activo' ? `/api/programas/${id}/reactivar` : `/api/programas/${id}/desactivar`,
+    { method: 'PATCH' }
+  ),
+  reactivar: (id) => apiJson(`/api/programas/${id}/reactivar`, { method: 'PATCH' }),
   concluir: (id) => apiJson(`/api/programas/${id}/desactivar`, { method: 'PATCH' }),
 
   // Módulos y materias
@@ -40,7 +44,7 @@ export const programaService = {
   // Asistente Académico / Editor Fijo (5 Pasos)
   getMallas: (idPrograma) => apiJson(idPrograma ? `/api/programas/${idPrograma}/mallas` : '/api/mallas'),
   getWizardData: (idPrograma) => apiJson(`/api/programas/${idPrograma}`),
-  saveWizardProgram: (payload) => apiJson('/api/programas', { method: 'POST', body: payload }),
+  saveWizardProgram: (payload) => apiJson('/api/registros-academicos', { method: 'POST', body: payload }),
 };
 
 export default programaService;

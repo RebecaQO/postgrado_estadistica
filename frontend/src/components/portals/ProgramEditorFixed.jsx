@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { programaService } from '../../services/programaService';
 import { docenteService } from '../../services/docenteService';
+import { apiJson } from '../../utils/api';
 import './ProgramEditorFixed.css';
 
 export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel }) => {
@@ -117,15 +118,52 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
           ]);
         }
 
-        // 3. Cargar datos si es edición de programa existente
+        // 3. Cargar datos si es edición de programa existente desde la API
         if (initialProgramId) {
-          const wizardData = await programaService.getWizardData(initialProgramId);
-          if (wizardData) {
-            if (wizardData.program) setProgram(wizardData.program);
-            if (wizardData.malla) setMalla(wizardData.malla);
-            if (wizardData.mallas) setSavedMallas(wizardData.mallas);
-            if (wizardData.edition) setEdition(wizardData.edition);
-            if (wizardData.selectedTeachers) setSelectedTeachers(wizardData.selectedTeachers);
+          const raw = await programaService.getById(initialProgramId);
+          const p = raw?.data || raw;
+          if (p) {
+            const isMaestria = (p.tipo_programa || p.type || p.kind || '').toLowerCase().includes('maestr');
+            setProgram({
+              id: String(p.id_programa || p.id || initialProgramId),
+              name: p.nombre_programa || p.title || p.name || '',
+              description: p.descripcion || p.description || '',
+              kind: isMaestria ? 'Maestría' : 'Diplomado',
+              type: p.maestria?.tipo || p.type || 'Terminal',
+              area: p.area_conocimiento || p.area || 'Ciencias Exactas',
+              mencion: p.mencion || '',
+            });
+
+            if (Array.isArray(p.mallas) && p.mallas.length > 0) {
+              setSavedMallas(p.mallas);
+              const m0 = p.mallas[0];
+              setMalla((prev) => ({
+                ...prev,
+                id: String(m0.id_malla || m0.id || prev.id),
+                name: m0.nombre_malla || prev.name,
+              }));
+            }
+
+            if (Array.isArray(p.ediciones) && p.ediciones.length > 0) {
+              const ed0 = p.ediciones[0];
+              setEdition((prev) => ({
+                ...prev,
+                id: String(ed0.id_edicion || ed0.id || prev.id),
+                start: ed0.fecha_inicio || prev.start,
+                end: ed0.fecha_fin || prev.end,
+                duration: ed0.duracion || prev.duration,
+                schedule: ed0.horario || prev.schedule,
+                description: ed0.descripcion || prev.description,
+                degree: ed0.modalidad_titulacion || prev.degree,
+                requirements: ed0.requisitos || prev.requirements,
+                callLink: ed0.convocatoria || prev.callLink,
+                form: ed0.formulario || prev.form,
+                state: ed0.estado || prev.state,
+              }));
+              if (Array.isArray(ed0.docentes) && ed0.docentes.length > 0) {
+                setSelectedTeachers(ed0.docentes.map((d) => d.id_doc || d.id));
+              }
+            }
           }
         }
       } catch (err) {
@@ -378,45 +416,191 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
     }
   };
 
-  // Guardado en Base de Datos
+  // Guardado y sincronización en Base de Datos
   const handleSaveToDatabase = async () => {
     try {
       setSaving(true);
       setErrorMessage('');
       setSuccessMessage('');
 
+      const isMaestria = program.kind === 'Maestría' || program.kind === 'Maestria';
+
       const cleanProgram = {
         ...program,
-        id: program.id.trim() || uid('PG-EST'),
-        name: program.name.trim() || 'Nuevo Programa Académico',
-        description: program.description.trim() || 'Programa oficial de posgrado de la UMSA.',
+        id: String(program.id || '').trim() || uid('PG-EST'),
+        name: (program.name || '').trim() || 'Nuevo Programa Académico',
+        description: (program.description || '').trim() || 'Programa oficial de posgrado de la UMSA.',
+        area: (program.area || '').trim() || 'Ciencias Exactas',
+        mencion: (program.mencion || '').trim(),
       };
 
       const cleanMalla = {
         ...malla,
-        id: malla.id.trim() || `MALLA-${cleanProgram.id}`,
-        name: malla.name.trim() || 'Plan de Estudios Académico',
+        name: (malla.name || '').trim() || `Plan de Estudios ${cleanProgram.name}`,
       };
 
       const cleanEdition = {
         ...edition,
-        id: edition.id.trim() || `ED-2026-${cleanProgram.id}`,
-        duration: edition.duration.trim() || (cleanProgram.kind === 'Maestría' ? '18 meses' : '6 meses'),
-        schedule: edition.schedule.trim() || 'Lunes a Viernes 19:00 - 22:00',
+        name: (edition.name || '').trim() || `Edición ${cleanProgram.name}`,
+        duration: (edition.duration || '').trim() || (isMaestria ? '18 meses' : '6 meses'),
+        schedule: (edition.schedule || '').trim() || 'Lunes a Viernes 19:00 - 22:00',
+        description: (edition.description || '').trim() || 'Edición oficial del programa de posgrado.',
+        degree: (edition.degree || '').trim() || (isMaestria ? 'Tesis de Maestría' : 'Monografía final'),
+        requirements: (edition.requirements || '').trim() || 'Título en Provisión Nacional a nivel Licenciatura y CV documentado.',
+        start: edition.start || new Date().toISOString().split('T')[0],
+        end: edition.end || new Date(Date.now() + 180 * 24 * 3600 * 1000).toISOString().split('T')[0],
+        callLink: edition.callLink || edition.call || 'https://posgrado.fcpn.umsa.bo/convocatoria',
+        form: edition.form && edition.form.startsWith('http') ? edition.form : 'https://posgrado.fcpn.umsa.bo/postulacion',
+        state: edition.state || 'En Proceso',
       };
 
-      // Solo enviar docentes realmente seleccionados (evitar docentes ficticios no registrados en BD remota)
-      const finalTeachers = selectedTeachers.filter(Boolean);
+      const finalTeachers = (selectedTeachers || []).filter(Boolean);
 
-      const payload = {
-        program: cleanProgram,
-        malla: cleanMalla,
-        edition: cleanEdition,
-        teachers: teacherDrafts,
-        selectedTeachers: finalTeachers,
+      // CASO 1: ACTUALIZACIÓN DE PROGRAMA EXISTENTE
+      if (initialProgramId) {
+        const updatePayload = {
+          nombre_programa: cleanProgram.name,
+          descripcion: cleanProgram.description,
+          area_conocimiento: cleanProgram.area || null,
+          mencion: cleanProgram.mencion || null,
+        };
+
+        const result = await programaService.update(initialProgramId, updatePayload);
+
+        // Si la edición existe en PostgreSQL, actualizarla también
+        const numEdId = parseInt(cleanEdition.id, 10);
+        if (!isNaN(numEdId) && numEdId > 0) {
+          await apiJson(`/api/ediciones/${numEdId}`, {
+            method: 'PUT',
+            body: {
+              nombre_edicion: cleanEdition.name,
+              fecha_inicio: cleanEdition.start,
+              fecha_fin: cleanEdition.end,
+              duracion: cleanEdition.duration,
+              horario: cleanEdition.schedule,
+              descripcion: cleanEdition.description,
+              modalidad_titulacion: cleanEdition.degree,
+              requisitos: cleanEdition.requirements,
+              convocatoria: cleanEdition.callLink,
+              formulario: cleanEdition.form,
+              estado: cleanEdition.state,
+            }
+          }).catch(() => null);
+        }
+
+        setSuccessMessage(`¡El programa "${cleanProgram.name}" se actualizó exitosamente en la base de datos!`);
+        if (onSaved) {
+          setTimeout(() => {
+            onSaved(result);
+          }, 1200);
+        }
+        return;
+      }
+
+      // CASO 2: CREACIÓN DE NUEVO PROGRAMA COMPLETO (REGISTRO ACADÉMICO EN BD)
+      let modulosPayload = [];
+      let materiasPayload = [];
+
+      if (isMaestria) {
+        modulosPayload = (cleanMalla.modules || []).map((m, mIdx) => ({
+          nombre_mod: (m.name || '').trim() || `Módulo ${mIdx + 1}`,
+          materias: (m.subjects || []).map((s) => {
+            const numId = parseInt(s.id, 10);
+            if (!isNaN(numId) && numId > 0) {
+              return {
+                id_mat: numId,
+                creditos: Number(s.credits) || 4,
+                carga_horaria: Number(s.hours) || 64,
+              };
+            }
+            return {
+              nombre_mat: (s.name || '').trim() || 'Materia de Especialidad',
+              descripcion: (s.description || s.name || '').trim() || 'Contenido curricular del módulo.',
+              creditos: Number(s.credits) || 4,
+              carga_horaria: Number(s.hours) || 64,
+            };
+          }),
+        })).filter((mod) => mod.materias.length > 0);
+
+        if (modulosPayload.length === 0) {
+          modulosPayload.push({
+            nombre_mod: 'Módulo 1: Fundamentos y Metodología',
+            materias: [
+              {
+                nombre_mat: 'Metodología de la Investigación y Análisis Cuantitativo',
+                descripcion: 'Materia introductoria del programa de posgrado.',
+                creditos: 6,
+                carga_horaria: 96,
+              }
+            ]
+          });
+        }
+      } else {
+        materiasPayload = (cleanMalla.subjects || []).map((s) => {
+          const numId = parseInt(s.id, 10);
+          if (!isNaN(numId) && numId > 0) {
+            return {
+              id_mat: numId,
+              creditos: Number(s.credits) || 4,
+              carga_horaria: Number(s.hours) || 64,
+            };
+          }
+          return {
+            nombre_mat: (s.name || '').trim() || 'Materia de Diplomado',
+            descripcion: (s.description || s.name || '').trim() || 'Contenido temático del diplomado.',
+            creditos: Number(s.credits) || 4,
+            carga_horaria: Number(s.hours) || 64,
+          };
+        });
+
+        if (materiasPayload.length === 0) {
+          materiasPayload.push({
+            nombre_mat: 'Módulo 1: Fundamentos Aplicados',
+            descripcion: 'Contenido temático introductorio del diplomado.',
+            creditos: 5,
+            carga_horaria: 80,
+          });
+        }
+      }
+
+      const docentesPayload = finalTeachers
+        .map((t) => {
+          const rawId = typeof t === 'object' ? (t.id_doc || t.id) : t;
+          const num = parseInt(rawId, 10);
+          return !isNaN(num) && num > 0 ? { id_doc: num } : null;
+        })
+        .filter(Boolean);
+
+      const academicPayload = {
+        programa: {
+          nombre_programa: cleanProgram.name,
+          descripcion: cleanProgram.description,
+          tipo_programa: isMaestria ? 'Maestria' : 'Diplomado',
+          tipo_maestria: isMaestria ? (cleanProgram.type || 'Terminal') : null,
+          area_conocimiento: cleanProgram.area,
+          mencion: cleanProgram.mencion || null,
+        },
+        malla: {
+          nombre_malla: cleanMalla.name,
+          ...(isMaestria ? { modulos: modulosPayload } : { materias: materiasPayload }),
+        },
+        edicion: {
+          nombre_edicion: cleanEdition.name,
+          fecha_inicio: cleanEdition.start,
+          fecha_fin: cleanEdition.end,
+          duracion: cleanEdition.duration,
+          horario: cleanEdition.schedule,
+          descripcion: cleanEdition.description,
+          modalidad_titulacion: cleanEdition.degree,
+          requisitos: cleanEdition.requirements,
+          convocatoria: cleanEdition.callLink,
+          formulario: cleanEdition.form,
+          estado: cleanEdition.state,
+        },
+        docentes: docentesPayload,
       };
 
-      const result = await programaService.saveWizardProgram(payload);
+      const result = await programaService.saveWizardProgram(academicPayload);
 
       setSuccessMessage(`¡El programa "${cleanProgram.name}" se guardó exitosamente en el sistema académico!`);
       

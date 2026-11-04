@@ -227,7 +227,29 @@ export const AdminPortal = ({ onExitAdmin }) => {
         defensaService.getDefensasTesis(),
       ]);
 
-      const items = Array.isArray(progData?.items) ? progData.items : [];
+      const rawProgItems = Array.isArray(progData)
+        ? progData
+        : (Array.isArray(progData?.items) ? progData.items : (Array.isArray(progData?.data) ? progData.data : []));
+
+      const items = rawProgItems.map((p) => {
+        const isMaestria = (p.tipo_programa || p.type || '').toLowerCase().includes('maestr');
+        return {
+          ...p,
+          id: p.id || p.id_programa,
+          id_programa: p.id_programa || p.id,
+          title: p.title || p.nombre_programa || 'Sin título',
+          nombre_programa: p.nombre_programa || p.title,
+          description: p.description || p.descripcion || '',
+          type: isMaestria ? 'Maestría' : 'Diplomado',
+          tipo_programa: isMaestria ? 'Maestria' : 'Diplomado',
+          typeFilter: p.maestria?.tipo || p.typeFilter || 'Autofinanciada',
+          status: p.status || (p.activo ? 'Activo' : 'Inactivo'),
+          credits: p.credits || 60,
+          mencion: p.mencion || '',
+          resolution: p.resolution || '',
+        };
+      });
+
       setProgramCatalog(items);
       if (items.length > 0 && !selectedProgramForCurriculum) {
         setSelectedProgramForCurriculum(items[0].id);
