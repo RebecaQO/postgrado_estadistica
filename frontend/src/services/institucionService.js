@@ -4,12 +4,12 @@ export const institucionService = {
   /**
    * Obtiene la información institucional de la carrera
    */
-  getInfo: () => apiJson('/api/institucion/info'),
+  getInfo: () => apiJson('/api/institucion'),
 
   /**
    * Actualiza la información institucional
    */
-  updateInfo: (payload) => apiJson('/api/admin/institucion/info', {
+  updateInfo: (payload) => apiJson('/api/institucion', {
     method: 'PUT',
     body: payload,
   }),

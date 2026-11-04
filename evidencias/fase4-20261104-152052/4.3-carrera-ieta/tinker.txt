@@ -1,0 +1,7 @@
+
+ID: 1
+Nombre: Carrera de Estadística - UMSA (Actualizado)
+Direccion: Campus Universitario Cota Cota, Calle 27, Edificio FCPN - Carrera de Estadística
+Email: estapost@fcpn.edu.bo
+Director: Dirección de la Carrera de Estadística y Posgrado
+Campus URL: https://maestria.estadistica.fcpn.edu.bo

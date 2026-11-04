@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import UsuariosPanel from './panels/UsuariosPanel';
 import DefensasPanel from './panels/DefensasPanel';
+import CarreraPanel from './panels/CarreraPanel';
 import {
   programaService,
   adminService,
@@ -1305,149 +1306,7 @@ export const AdminPortal = ({ onExitAdmin }) => {
 
             {/* SECCIÓN INFORMACIÓN INSTITUCIONAL DE LA CARRERA & IETA */}
             {activeTab === 'carrera' && (
-              <div className="animate-fade-in">
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.35rem', color: 'var(--color-text-main)', fontWeight: 800, margin: 0 }}>
-                    Información Institucional, Carrera & IETA
-                  </h3>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                    Configuración de direcciones, campus virtual, IETA, Club Científico y canales oficiales en la base de datos PostgreSQL.
-                  </p>
-                </div>
-
-                <form onSubmit={handleSaveCarreraInfo} className="glass-card" style={{ background: '#ffffff', border: '1.5px solid var(--color-border)', padding: '2rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                    <div className="form-group">
-                      <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <MapPin size={16} color="var(--color-green-inst)" />
-                        <span>Dirección de la Carrera & Campus</span>
-                      </label>
-                      <textarea
-                        rows={2}
-                        required
-                        value={carreraInfo.direccion}
-                        onChange={(e) => setCarreraInfo({ ...carreraInfo, direccion: e.target.value })}
-                        className="form-textarea"
-                        placeholder="Ej. Campus Universitario Cota Cota, Calle 27, Edificio FCPN - Carrera de Estadística..."
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Mail size={16} color="var(--color-green-inst)" />
-                        <span>Correo Electrónico Oficial de Posgrado</span>
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={carreraInfo.email_principal}
-                        onChange={(e) => setCarreraInfo({ ...carreraInfo, email_principal: e.target.value })}
-                        className="form-input"
-                        placeholder="estapost@fcpn.edu.bo"
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                    <div className="form-group">
-                      <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Globe size={16} color="var(--color-blue-steel)" />
-                        <span>Campus Virtual de Posgrado (URL)</span>
-                      </label>
-                      <input
-                        type="url"
-                        required
-                        value={carreraInfo.campus_virtual_url}
-                        onChange={(e) => setCarreraInfo({ ...carreraInfo, campus_virtual_url: e.target.value })}
-                        className="form-input"
-                        placeholder="https://maestria.estadistica.fcpn.edu.bo"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <PhoneCall size={16} color="var(--color-green-inst)" />
-                        <span>Teléfono / Central Telefónica</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={carreraInfo.telefono}
-                        onChange={(e) => setCarreraInfo({ ...carreraInfo, telefono: e.target.value })}
-                        className="form-input"
-                        placeholder="+591 (2) 279-2999"
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                    <div className="form-group">
-                      <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Clock size={16} color="var(--color-green-inst)" />
-                        <span>Horario de Atención Secretaría</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={carreraInfo.horario_atencion}
-                        onChange={(e) => setCarreraInfo({ ...carreraInfo, horario_atencion: e.target.value })}
-                        className="form-input"
-                        placeholder="Lunes a Viernes 08:30 - 18:30"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Award size={16} color="var(--color-green-inst)" />
-                        <span>Dirección / Autoridad de Posgrado</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={carreraInfo.director_nombre}
-                        onChange={(e) => setCarreraInfo({ ...carreraInfo, director_nombre: e.target.value })}
-                        className="form-input"
-                        placeholder="Dirección de la Carrera de Estadística y Posgrado"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                    <label className="form-label">
-                      <strong>IETA — Instituto de Estadística Teórica y Aplicada</strong> (Descripción Institucional)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={carreraInfo.ieta_descripcion}
-                      onChange={(e) => setCarreraInfo({ ...carreraInfo, ieta_descripcion: e.target.value })}
-                      className="form-textarea"
-                      placeholder="Reseña, objetivos y líneas de investigación del IETA..."
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: '2rem' }}>
-                    <label className="form-label">
-                      <strong>Club Científico de Estadística</strong> (Semilleros & Comunidad)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={carreraInfo.club_cientifico_descripcion}
-                      onChange={(e) => setCarreraInfo({ ...carreraInfo, club_cientifico_descripcion: e.target.value })}
-                      className="form-textarea"
-                      placeholder="Actividades, hackathons y semilleros de investigación..."
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                    <button
-                      type="submit"
-                      disabled={isSavingCarreraInfo}
-                      className="btn btn-primary"
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 2rem', fontSize: '0.95rem' }}
-                    >
-                      <Save size={18} />
-                      <span>{isSavingCarreraInfo ? 'Guardando en BD...' : 'Guardar Información Institucional'}</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
+              <CarreraPanel />
             )}
 
             {/* 5. SECCIÓN DOCENTES (PLANTEL DOCENTE CON FOTO Y REDES) */}
