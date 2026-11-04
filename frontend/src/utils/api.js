@@ -71,6 +71,11 @@ const handleApiResponse = async (response) => {
     throw error;
   }
 
+  // Desempaqueta `data` si la API envuelve en { success, data: [...] | {...} }
+  if (payload && typeof payload === 'object' && 'data' in payload && payload.data !== undefined) {
+    return payload.data;
+  }
+
   return payload;
 };
 
