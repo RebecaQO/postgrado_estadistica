@@ -11,21 +11,13 @@ export const docenteService = {
    */
   getAdminDocentes: () => apiJson('/api/docentes'),
 
-  /**
-   * Sube una foto de docente
-   */
-  uploadFoto: async (file) => {
-    const formData = new FormData();
-    formData.append('foto', file);
-    return apiJson('/api/docentes/upload-foto', {
-      method: 'POST',
-      body: formData,
-    });
-  },
-
   create: (payload) => apiJson('/api/docentes', { method: 'POST', body: payload }),
   update: (id, payload) => apiJson(`/api/docentes/${id}`, { method: 'PUT', body: payload }),
   delete: (id) => apiJson(`/api/docentes/${id}`, { method: 'DELETE' }),
+  updateStatus: (id, activo) => apiJson(
+    `/api/docentes/${id}/${activo ? 'reactivar' : 'desactivar'}`,
+    { method: 'PATCH' }
+  ),
 };
 
 export default docenteService;

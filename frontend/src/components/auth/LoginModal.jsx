@@ -25,7 +25,7 @@ export const LoginModal = ({ onLoginSuccess }) => {
     try {
       const user = await loginAs({ email: emailInput, password: passwordInput });
       if (user && onLoginSuccess) {
-        onLoginSuccess('admin');
+        onLoginSuccess(user);
       }
     } finally {
       setLoading(false);

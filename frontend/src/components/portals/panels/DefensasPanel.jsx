@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Calendar, Clock, MapPin, AlertCircle, Filter } from 'lucide-react';
 import { apiJson } from '../../../utils/api';
+import AdminSectionHeader from '../AdminSectionHeader';
 
 export default function DefensasPanel() {
   const [defensas, setDefensas] = useState([]);
@@ -157,25 +158,19 @@ export default function DefensasPanel() {
 
   return (
     <div className="animate-fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h3 style={{ fontSize: '1.35rem', color: 'var(--color-text-main)', fontWeight: 800, margin: 0 }}>
-            Defensas de Tesis & Grado ({defensasFiltradas.length})
-          </h3>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>
-            Programación, modalidades de titulación y actas de sustentación académica.
-          </p>
-        </div>
-
-        <button
+      <AdminSectionHeader
+        section="Administración · Actividad académica"
+        title={`Defensas de Tesis & Grado (${defensasFiltradas.length})`}
+        description="Programación, modalidades de titulación y actas de sustentación académica."
+        actions={<button
           onClick={abrirCrear}
           className="btn btn-primary"
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
         >
           <Plus size={16} />
           <span>Programar Nueva Defensa</span>
-        </button>
-      </div>
+        </button>}
+      />
 
       {/* Barra de Filtros */}
       <div style={{
@@ -319,20 +314,12 @@ export default function DefensasPanel() {
         </div>
       )}
 
-      {/* Modal Crear / Editar */}
       {modalOpen && (
-        <div className="modal-backdrop" style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'var(--color-bg-card, #ffffff)', padding: '2rem', borderRadius: '8px',
-            width: '100%', maxWidth: '540px', maxHeight: '90vh', overflowY: 'auto',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
-          }}>
+        <section className="glass-card" aria-labelledby="defense-editor-title" style={{ background: '#ffffff', padding: '1.5rem', marginBottom: '1.25rem', border: '1.5px solid var(--color-border)' }}>
             <h4 style={{ margin: '0 0 1.25rem 0', color: 'var(--color-text-main)' }}>
+              <span id="defense-editor-title">
               {editing ? 'Editar Defensa de Tesis' : 'Programar Nueva Defensa de Tesis'}
+              </span>
             </h4>
 
             <form onSubmit={guardar}>
@@ -506,8 +493,7 @@ export default function DefensasPanel() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </section>
       )}
     </div>
   );

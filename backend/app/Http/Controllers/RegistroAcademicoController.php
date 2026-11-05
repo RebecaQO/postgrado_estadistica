@@ -35,7 +35,11 @@ class RegistroAcademicoController extends Controller
             'programa' => ['required', 'array'],
 
             'programa.nombre_programa' => [
-                'required', 'string', 'max:150',
+                'required',
+                'string',
+                'max:150',
+                Rule::unique('programa_postgrado', 'nombre_programa')
+                    ->where('tipo_programa', $tipo),
             ],
 
             'programa.descripcion' => [
@@ -233,7 +237,7 @@ class RegistroAcademicoController extends Controller
                 'sometimes',
                 'required',
                 'integer',
-                Rule::exists('docente', 'id_doc'),
+                Rule::exists('docente', 'id_doc')->where('activo', true),
             ],
 
             'docentes.*.nombre_doc' => [
@@ -290,6 +294,18 @@ class RegistroAcademicoController extends Controller
                             'id_mat',
                             ['nombre_mat', 'descripcion']
                         );
+
+                            foreach ($modulo['materias'] ?? [] as $indiceMateria => $materia) {
+                            if (is_array($materia) && isset($materia['id_mat']) && !Materia::query()
+                                    ->where('id_mat', $materia['id_mat'])
+                                    ->where('activo', true)
+                                    ->exists()) {
+                                    $validator->errors()->add(
+                                        "malla.modulos.$i.materias.$indiceMateria.id_mat",
+                                        'La materia seleccionada está inactiva.'
+                                    );
+                                }
+                            }
                     }
                 }
 
@@ -309,6 +325,18 @@ class RegistroAcademicoController extends Controller
                     'id_mat',
                     ['nombre_mat', 'descripcion']
                 );
+
+                    foreach ($malla['materias'] ?? [] as $indiceMateria => $materia) {
+                    if (is_array($materia) && isset($materia['id_mat']) && !Materia::query()
+                            ->where('id_mat', $materia['id_mat'])
+                            ->where('activo', true)
+                            ->exists()) {
+                            $validator->errors()->add(
+                                "malla.materias.$indiceMateria.id_mat",
+                                'La materia seleccionada está inactiva.'
+                            );
+                        }
+                    }
             }
 
             $this->validarItems(

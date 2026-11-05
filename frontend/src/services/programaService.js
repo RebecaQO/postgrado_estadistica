@@ -34,12 +34,18 @@ export const programaService = {
   concluir: (id) => apiJson(`/api/programas/${id}/desactivar`, { method: 'PATCH' }),
 
   // Módulos y materias
-  getModulos: (id) => apiJson(`/api/mallas/${id}/modulos`),
+  getModulos: (idMalla) => apiJson(`/api/mallas/${idMalla}/modulos`),
+  getMallaById: (idMalla) => apiJson(`/api/mallas/${idMalla}`),
   getMaterias: () => apiJson('/api/materias'),
   createModulo: (payload) => apiJson('/api/modulos', { method: 'POST', body: payload }),
   deleteModulo: (idMod) => apiJson(`/api/modulos/${idMod}`, { method: 'DELETE' }),
   createMateria: (payload) => apiJson('/api/materias', { method: 'POST', body: payload }),
-  deleteMateria: (idMat) => apiJson(`/api/materias/${idMat}`, { method: 'DELETE' }),
+  assignMateriaToModulo: (idModulo, payload) => apiJson(`/api/modulos/${idModulo}/materias`, { method: 'POST', body: payload }),
+  assignMateriaToMalla: (idMalla, payload) => apiJson(`/api/mallas/${idMalla}/materias`, { method: 'POST', body: payload }),
+  updateMateriaStatus: (idMateria, activo) => apiJson(
+    `/api/materias/${idMateria}/${activo ? 'reactivar' : 'desactivar'}`,
+    { method: 'PATCH' }
+  ),
 
   // Asistente Académico / Editor Fijo (5 Pasos)
   getMallas: (idPrograma) => apiJson(idPrograma ? `/api/programas/${idPrograma}/mallas` : '/api/mallas'),

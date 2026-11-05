@@ -23,7 +23,7 @@ import { docenteService } from '../../services/docenteService';
 import { apiJson } from '../../utils/api';
 import './ProgramEditorFixed.css';
 
-export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel }) => {
+export const ProgramEditorFixed = ({ initialProgramId = null, existingPrograms = [], onSaved, onCancel }) => {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -104,18 +104,21 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
 
         // 1. Cargar materias existentes de la Base de Datos para reutilización
         const materiasList = await programaService.getMaterias().catch(() => []);
-        setDbMaterias(Array.isArray(materiasList) ? materiasList : []);
+        setDbMaterias(Array.isArray(materiasList) ? materiasList.map((materia) => ({
+          id: String(materia.id_mat),
+          name: materia.nombre_mat,
+          description: materia.descripcion || '',
+          materiaMaestria: materia.materia_maestria,
+          moduloDiplomado: materia.modulo_diplomado,
+          activo: materia.activo !== false,
+        })) : []);
 
         // 2. Cargar docentes del sistema
         const docs = await docenteService.getPublicDocentes().catch(() => []);
         if (Array.isArray(docs) && docs.length > 0) {
-          setAvailableTeachers(docs);
+          setAvailableTeachers(docs.filter((docente) => docente.activo !== false));
         } else {
-          setAvailableTeachers([
-            { id: 'DOC-01', id_doc: 'DOC-01', nombre_completo: 'Dr. Roberto Gutiérrez', especialidad: 'Estadística Matemática' },
-            { id: 'DOC-02', id_doc: 'DOC-02', nombre_completo: 'MSc. Elena Mendoza', especialidad: 'Ciencia de Datos y Machine Learning' },
-            { id: 'DOC-03', id_doc: 'DOC-03', nombre_completo: 'Dr. Carlos Paredes', especialidad: 'Bioestadística y Modelado' },
-          ]);
+          setAvailableTeachers([]);
         }
 
         // 3. Cargar datos si es edición de programa existente desde la API
@@ -135,13 +138,32 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
             });
 
             if (Array.isArray(p.mallas) && p.mallas.length > 0) {
-              setSavedMallas(p.mallas);
-              const m0 = p.mallas[0];
-              setMalla((prev) => ({
-                ...prev,
-                id: String(m0.id_malla || m0.id || prev.id),
-                name: m0.nombre_malla || prev.name,
+              const normalizedMallas = p.mallas.map((mallaData) => ({
+                id: String(mallaData.id_malla),
+                name: mallaData.nombre_malla || '',
+                modules: (mallaData.modulos || []).map((modulo) => ({
+                  id: String(modulo.id_mod),
+                  name: modulo.nombre_mod || '',
+                  subjects: (modulo.materias || []).map((item) => ({
+                    id: String(item.id_mat),
+                    name: item.materia?.nombre_mat || '',
+                    description: item.materia?.descripcion || '',
+                    credits: item.pivot?.creditos || 0,
+                    hours: item.pivot?.carga_horaria || 0,
+                    isExisting: true,
+                  })),
+                })),
+                subjects: (mallaData.materias_diplomado || []).map((item) => ({
+                  id: String(item.id_mat),
+                  name: item.materia?.nombre_mat || '',
+                  description: item.materia?.descripcion || '',
+                  credits: item.pivot?.creditos || 0,
+                  hours: item.pivot?.carga_horaria || 0,
+                  isExisting: true,
+                })),
               }));
+              setSavedMallas(normalizedMallas);
+              setMalla(normalizedMallas[0]);
             }
 
             if (Array.isArray(p.ediciones) && p.ediciones.length > 0) {
@@ -213,8 +235,9 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
           id: found.id,
           name: found.name,
           description: found.description || '',
-          credits: found.credits || 4,
-          hours: found.hours || 64,
+          credits: 4,
+          hours: 64,
+          isExisting: true,
         }
       ]
     }));
@@ -227,7 +250,7 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
       ...prev,
       subjects: [
         ...prev.subjects,
-        { id: uid('MAT'), name: '', description: '', credits: 4, hours: 64 }
+        { id: uid('MAT'), name: '', description: '', credits: 4, hours: 64, isExisting: false }
       ]
     }));
   };
@@ -284,6 +307,7 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
       description: '',
       credits: 4,
       hours: 64,
+      isExisting: false,
     });
   };
 
@@ -297,25 +321,31 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
         description: '',
         credits: 4,
         hours: 64,
+        isExisting: false,
       });
       return;
     }
 
-    const found = dbMaterias.find((m) => m.id === matId);
+    const found = dbMaterias.find((m) => m.id === String(matId));
     if (found) {
       setInlineSubjectDraft({
         id: found.id,
         name: found.name,
         description: found.description || '',
-        credits: found.credits || 4,
-        hours: found.hours || 64,
+        credits: 4,
+        hours: 64,
+        isExisting: true,
       });
     }
   };
 
   // Guardar materia en el módulo
   const saveInlineSubject = () => {
-    const matName = inlineSubjectDraft.name.trim() || 'Nueva Materia';
+    const matName = inlineSubjectDraft.name.trim();
+    if (!matName || !inlineSubjectDraft.description.trim()) {
+      setErrorMessage('Completa nombre y descripción de la materia antes de incorporarla.');
+      return;
+    }
     setMalla((prev) => {
       const copy = [...prev.modules];
       copy[activeModuleForSubject].subjects = [
@@ -363,11 +393,21 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
   };
 
   const commitTeacherDrafts = () => {
+    const invalidDraft = teacherDrafts.find((teacher) => !teacher.name.trim() || !teacher.last.trim());
+    if (invalidDraft) {
+      setErrorMessage('Completa nombres y apellidos de cada docente nuevo antes de incorporarlo.');
+      return;
+    }
+
     const newItems = teacherDrafts.map((t) => ({
       id: t.id,
       id_doc: t.id,
       nombre: t.name || 'Docente',
       apellido: t.last || 'Posgrado',
+      nombre_doc: t.name,
+      apellido_doc: t.last,
+      foto: t.photo || '',
+      isNewDraft: true,
       nombre_completo: `${t.name || 'Docente'} ${t.last || 'Posgrado'}`.trim(),
       foto_url: t.photo || '',
     }));
@@ -412,12 +452,14 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
       });
       setSelectedTeachers([]);
       setTeacherDrafts([]);
+      setErrorMessage('');
       setStep(0);
     }
   };
 
   // Guardado y sincronización en Base de Datos
   const handleSaveToDatabase = async () => {
+    let programUpdated = false;
     try {
       setSaving(true);
       setErrorMessage('');
@@ -427,17 +469,38 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
 
       const cleanProgram = {
         ...program,
-        id: String(program.id || '').trim() || uid('PG-EST'),
-        name: (program.name || '').trim() || 'Nuevo Programa Académico',
-        description: (program.description || '').trim() || 'Programa oficial de posgrado de la UMSA.',
+        id: String(program.id || '').trim(),
+        name: (program.name || '').trim(),
+        description: (program.description || '').trim(),
         area: (program.area || '').trim() || 'Ciencias Exactas',
         mencion: (program.mencion || '').trim(),
       };
 
+      if (!cleanProgram.name || !cleanProgram.description) {
+        throw new Error('Completa el nombre y la descripción oficial del programa.');
+      }
+
+      const normalizedName = cleanProgram.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase();
+      const duplicateProgram = existingPrograms.find((existingProgram) => {
+        const existingName = String(existingProgram.nombre_programa || existingProgram.title || '')
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase();
+        const existingId = String(existingProgram.id_programa || existingProgram.id || '');
+        return existingId !== String(initialProgramId || '') &&
+          existingProgram.tipo_programa === (isMaestria ? 'Maestria' : 'Diplomado') &&
+          existingName === normalizedName;
+      });
+      if (duplicateProgram) {
+        throw new Error('Ya existe un programa con el mismo nombre y tipo en el catálogo cargado.');
+      }
+
       const cleanMalla = {
         ...malla,
-        name: (malla.name || '').trim() || `Plan de Estudios ${cleanProgram.name}`,
+        name: (malla.name || '').trim(),
       };
+
+      if (!cleanMalla.name) {
+        throw new Error('Ingresa el nombre del plan de estudios.');
+      }
 
       const cleanEdition = {
         ...edition,
@@ -466,6 +529,7 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
         };
 
         const result = await programaService.update(initialProgramId, updatePayload);
+        programUpdated = true;
 
         // Si la edición existe en PostgreSQL, actualizarla también
         const numEdId = parseInt(cleanEdition.id, 10);
@@ -485,7 +549,7 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
               formulario: cleanEdition.form,
               estado: cleanEdition.state,
             }
-          }).catch(() => null);
+          });
         }
 
         setSuccessMessage(`¡El programa "${cleanProgram.name}" se actualizó exitosamente en la base de datos!`);
@@ -503,9 +567,9 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
 
       if (isMaestria) {
         modulosPayload = (cleanMalla.modules || []).map((m, mIdx) => ({
-          nombre_mod: (m.name || '').trim() || `Módulo ${mIdx + 1}`,
+            nombre_mod: (m.name || '').trim(),
           materias: (m.subjects || []).map((s) => {
-            const numId = parseInt(s.id, 10);
+            const numId = s.isExisting ? parseInt(s.id, 10) : NaN;
             if (!isNaN(numId) && numId > 0) {
               return {
                 id_mat: numId,
@@ -514,30 +578,20 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
               };
             }
             return {
-              nombre_mat: (s.name || '').trim() || 'Materia de Especialidad',
-              descripcion: (s.description || s.name || '').trim() || 'Contenido curricular del módulo.',
+              nombre_mat: (s.name || '').trim(),
+              descripcion: (s.description || '').trim(),
               creditos: Number(s.credits) || 4,
               carga_horaria: Number(s.hours) || 64,
             };
           }),
         })).filter((mod) => mod.materias.length > 0);
 
-        if (modulosPayload.length === 0) {
-          modulosPayload.push({
-            nombre_mod: 'Módulo 1: Fundamentos y Metodología',
-            materias: [
-              {
-                nombre_mat: 'Metodología de la Investigación y Análisis Cuantitativo',
-                descripcion: 'Materia introductoria del programa de posgrado.',
-                creditos: 6,
-                carga_horaria: 96,
-              }
-            ]
-          });
+        if (modulosPayload.length === 0 || modulosPayload.some((modulo) => !modulo.nombre_mod || modulo.materias.length === 0)) {
+          throw new Error('Cada módulo de Maestría debe tener nombre y al menos una materia válida.');
         }
       } else {
         materiasPayload = (cleanMalla.subjects || []).map((s) => {
-          const numId = parseInt(s.id, 10);
+          const numId = s.isExisting ? parseInt(s.id, 10) : NaN;
           if (!isNaN(numId) && numId > 0) {
             return {
               id_mat: numId,
@@ -546,30 +600,33 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
             };
           }
           return {
-            nombre_mat: (s.name || '').trim() || 'Materia de Diplomado',
-            descripcion: (s.description || s.name || '').trim() || 'Contenido temático del diplomado.',
+            nombre_mat: (s.name || '').trim(),
+            descripcion: (s.description || '').trim(),
             creditos: Number(s.credits) || 4,
             carga_horaria: Number(s.hours) || 64,
           };
         });
 
-        if (materiasPayload.length === 0) {
-          materiasPayload.push({
-            nombre_mat: 'Módulo 1: Fundamentos Aplicados',
-            descripcion: 'Contenido temático introductorio del diplomado.',
-            creditos: 5,
-            carga_horaria: 80,
-          });
+        if (materiasPayload.length === 0 || materiasPayload.some((materia) => !materia.id_mat && (!materia.nombre_mat || !materia.descripcion))) {
+          throw new Error('El Diplomado debe tener al menos una materia con nombre y descripción.');
         }
       }
 
-      const docentesPayload = finalTeachers
-        .map((t) => {
-          const rawId = typeof t === 'object' ? (t.id_doc || t.id) : t;
-          const num = parseInt(rawId, 10);
-          return !isNaN(num) && num > 0 ? { id_doc: num } : null;
-        })
-        .filter(Boolean);
+      const docentesPayload = finalTeachers.map((teacher) => {
+        if (teacher?.isNewDraft) {
+          return {
+            nombre_doc: teacher.nombre_doc,
+            apellido_doc: teacher.apellido_doc,
+            foto: teacher.foto || null,
+          };
+        }
+        const rawId = typeof teacher === 'object' ? (teacher.id_doc || teacher.id) : teacher;
+        const idDocente = Number(rawId);
+        if (!Number.isInteger(idDocente) || idDocente <= 0) {
+          throw new Error('Uno de los docentes seleccionados no tiene un identificador válido.');
+        }
+        return { id_doc: idDocente };
+      });
 
       const academicPayload = {
         programa: {
@@ -613,7 +670,9 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
       console.error('[ProgramEditor] Error guardando en la BD:', err);
       // Mostrar el mensaje real del servidor si está disponible
       const serverMsg = err?.message || err?.data?.error || err?.data?.message || null;
-      const humanMsg = serverMsg
+      const humanMsg = programUpdated
+        ? `El Programa se actualizó, pero no se completó el resto de los cambios: ${serverMsg || 'error del servidor'}`
+        : serverMsg
         ? `No se pudo guardar: ${serverMsg}`
         : 'No se pudo guardar la información. Por favor verifique su conexión e intente nuevamente.';
       setErrorMessage(humanMsg);
@@ -647,6 +706,12 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
   const totalModulos = program.kind === 'Diplomado' 
     ? malla.subjects.length 
     : malla.modules.length;
+
+  const assignableDbMaterias = dbMaterias.filter((materia) =>
+    materia.activo && (program.kind === 'Diplomado'
+      ? Boolean(materia.moduloDiplomado)
+      : Boolean(materia.materiaMaestria))
+  );
 
   return (
     <div className="program-editor-fullscreen-wrapper">
@@ -856,7 +921,17 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
         {/* ══════════════════════════════════════════════════════════════════════
             PESTAÑA 02 · PLAN DE ESTUDIOS (REUTILIZACIÓN CON BARRA DESPLEGABLE)
            ══════════════════════════════════════════════════════════════════════ */}
-        {step === 1 && (
+        {step === 1 && initialProgramId && (
+          <div className="pe-panel" role="status">
+            <span className="pe-eyebrow">PLAN DE ESTUDIOS EXISTENTE</span>
+            <h2>{malla.name || 'Malla curricular'}</h2>
+            <p>
+              La API actual no permite cambiar la malla vinculada a una edición. Para proteger el historial académico, la edición curricular está pausada hasta que exista un flujo aprobado para crear una nueva versión y asociarla a una edición.
+            </p>
+          </div>
+        )}
+
+        {step === 1 && !initialProgramId && (
           <div className="pe-panel">
             <span className="pe-eyebrow">PASO 2 DE 5</span>
             <h2>Plan de Estudios: {program.name || program.kind}</h2>
@@ -937,9 +1012,9 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
                           style={{ flex: 1, minWidth: '280px', borderColor: '#267342' }}
                         >
                           <option value="">-- Seleccionar materia de la base de datos para reutilizar --</option>
-                          {dbMaterias.map((m) => (
+                          {assignableDbMaterias.map((m) => (
                             <option key={m.id} value={m.id}>
-                              {m.name} ({m.id}) · {m.credits} créditos · {m.hours} hrs
+                              {m.name} ({m.id})
                             </option>
                           ))}
                         </select>
@@ -1149,9 +1224,9 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
                                     style={{ borderColor: '#267342', fontWeight: 600, background: '#ffffff', marginTop: '4px' }}
                                   >
                                     <option value="">-- Elige una materia de la base de datos para autocompletar --</option>
-                                    {dbMaterias.map((m) => (
+                                    {assignableDbMaterias.map((m) => (
                                       <option key={m.id} value={m.id}>
-                                        {m.name} ({m.id}) · {m.credits} créditos · {m.hours} hrs
+                                        {m.name} ({m.id})
                                       </option>
                                     ))}
                                     <option value="__NEW__">✏️ Registrar una nueva materia personalizada...</option>
@@ -1447,6 +1522,7 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
                         <label>Nombres</label>
                         <input
                           type="text"
+                          maxLength={100}
                           value={td.name}
                           onChange={(e) => updateTeacherDraft(i, 'name', e.target.value)}
                           placeholder="Ej: Marcelo"
@@ -1456,6 +1532,7 @@ export const ProgramEditorFixed = ({ initialProgramId = null, onSaved, onCancel 
                         <label>Apellidos</label>
                         <input
                           type="text"
+                          maxLength={100}
                           value={td.last}
                           onChange={(e) => updateTeacherDraft(i, 'last', e.target.value)}
                           placeholder="Ej: Ramos Gutiérrez"

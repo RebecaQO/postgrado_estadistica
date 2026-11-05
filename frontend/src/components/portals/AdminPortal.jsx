@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import UsuariosPanel from './panels/UsuariosPanel';
 import DefensasPanel from './panels/DefensasPanel';
 import CarreraPanel from './panels/CarreraPanel';
+import AdminSectionHeader from './AdminSectionHeader';
 import {
   programaService,
   adminService,
@@ -41,7 +42,6 @@ import {
   RefreshCw, 
   FolderPlus, 
   BookMarked, 
-  Upload, 
   ExternalLink, 
   FileDown, 
   Percent, 
@@ -56,7 +56,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Bell
+  Bell,
+  Info
 } from 'lucide-react';
 import { ProgramEditorFixed } from './ProgramEditorFixed';
 import '../../styles/admin-portal.css';
@@ -64,13 +65,15 @@ import '../../styles/admin-portal.css';
 export const AdminPortal = ({ onExitAdmin }) => {
   const { currentUser } = useAuth();
 
-  // Sidebar Tab state: 'programas' | 'modulos' | 'convocatorias' | 'defensas' | 'carrera' | 'usuarios' | 'docentes' | 'metricas'
-  const [activeTab, setActiveTab] = useState('programas');
+  // Sidebar sections reuse the existing screens; maestrias/diplomados are catalog filters.
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   // Sidebar responsivo & buscador global
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
+  const [programStatusFilter, setProgramStatusFilter] = useState('todos');
+  const [expandedProgramId, setExpandedProgramId] = useState(null);
 
   // Data states
   const [programCatalog, setProgramCatalog] = useState([]);
@@ -96,8 +99,15 @@ export const AdminPortal = ({ onExitAdmin }) => {
 
   // Modulos & Materias state
   const [selectedProgramForCurriculum, setSelectedProgramForCurriculum] = useState('');
+  const [curriculumMallas, setCurriculumMallas] = useState([]);
+  const [selectedMallaForCurriculum, setSelectedMallaForCurriculum] = useState('');
+  const [isLoadingMallas, setIsLoadingMallas] = useState(false);
   const [programModules, setProgramModules] = useState([]);
+  const [programMallaSubjects, setProgramMallaSubjects] = useState([]);
   const [isLoadingModules, setIsLoadingModules] = useState(false);
+  const [curriculumError, setCurriculumError] = useState('');
+  const [curriculumSearch, setCurriculumSearch] = useState('');
+  const [subjectStatusFilter, setSubjectStatusFilter] = useState('todos');
 
   // Defensas de Tesis Modal CRUD
   const [defensaModalOpen, setDefensaModalOpen] = useState(false);
@@ -173,38 +183,26 @@ export const AdminPortal = ({ onExitAdmin }) => {
   const [materiaModalOpen, setMateriaModalOpen] = useState(false);
   const [targetModuloId, setTargetModuloId] = useState('');
   const [materiaForm, setMateriaForm] = useState({
-    id_mat: '',
     nombre_mat: '',
     creditos: 8,
     carga_horaria: 128,
-    tipo: 'Teórico-Práctica',
-    software_requerido: 'R, Python',
     descripcion: '',
-    id_docente: ''
   });
+  const [pendingMateriaAssignment, setPendingMateriaAssignment] = useState(null);
 
   // User Form
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: '', tipo: 'Estudiante', rol: 'ROL-004', password: '' });
 
-  // Docente Form & Local Upload State
+  // Docente form limited to the currently persisted API fields.
   const [docenteModalOpen, setDocenteModalOpen] = useState(false);
   const [editingDocente, setEditingDocente] = useState(null);
-  const [isUploadingDocFoto, setIsUploadingDocFoto] = useState(false);
+  const [docenteSearch, setDocenteSearch] = useState('');
+  const [docenteStatusFilter, setDocenteStatusFilter] = useState('todos');
   const [docenteForm, setDocenteForm] = useState({
-    nombre: '',
-    apellido: '',
-    email: '',
-    telefono: '',
-    titulo: 'PhD en Estadística',
-    especialidad: '',
-    categoria: 'Titular',
-    foto_url: '',
-    bio: '',
-    scholar: '',
-    researchgate: '',
-    linkedin: '',
-    orcid: ''
+    nombre_doc: '',
+    apellido_doc: '',
+    foto: '',
   });
 
   const [feedbackMessage, setFeedbackMessage] = useState(null);
@@ -231,24 +229,7 @@ export const AdminPortal = ({ onExitAdmin }) => {
         ? progData
         : (Array.isArray(progData?.items) ? progData.items : (Array.isArray(progData?.data) ? progData.data : []));
 
-      const items = rawProgItems.map((p) => {
-        const isMaestria = (p.tipo_programa || p.type || '').toLowerCase().includes('maestr');
-        return {
-          ...p,
-          id: p.id || p.id_programa,
-          id_programa: p.id_programa || p.id,
-          title: p.title || p.nombre_programa || 'Sin título',
-          nombre_programa: p.nombre_programa || p.title,
-          description: p.description || p.descripcion || '',
-          type: isMaestria ? 'Maestría' : 'Diplomado',
-          tipo_programa: isMaestria ? 'Maestria' : 'Diplomado',
-          typeFilter: p.maestria?.tipo || p.typeFilter || 'Autofinanciada',
-          status: p.status || (p.activo ? 'Activo' : 'Inactivo'),
-          credits: p.credits || 60,
-          mencion: p.mencion || '',
-          resolution: p.resolution || '',
-        };
-      });
+      const items = normalizeProgramas(rawProgItems);
 
       setProgramCatalog(items);
       if (items.length > 0 && !selectedProgramForCurriculum) {
@@ -257,7 +238,12 @@ export const AdminPortal = ({ onExitAdmin }) => {
 
       setUsuarios(Array.isArray(userData) ? userData : []);
       setRoles(Array.isArray(roleData) ? roleData : []);
-      setDocentes(Array.isArray(docData) ? docData : []);
+      setDocentes(Array.isArray(docData) ? docData.map((docente) => ({
+        ...docente,
+        id: docente.id_doc || docente.id,
+        nombre_completo: docente.nombre_completo || `${docente.nombre_doc || ''} ${docente.apellido_doc || ''}`.trim(),
+        foto_url: docente.foto || docente.foto_url || '',
+      })) : []);
       setConvocatoriasPasadas(Array.isArray(convData) ? convData : []);
       if (infoData && !infoData.error) setCarreraInfo(infoData);
       setDefensasTesis(Array.isArray(defensasData) ? defensasData : []);
@@ -273,25 +259,135 @@ export const AdminPortal = ({ onExitAdmin }) => {
     fetchAllData();
   }, []);
 
-  // Fetch modules whenever selectedProgramForCurriculum changes
-  const fetchCurriculumModules = async (progId) => {
-    if (!progId) return;
+  const normalizeProgramas = (items) => items.map((programa) => {
+    const tipoPrograma = programa.tipo_programa || programa.type || '';
+    const esMaestria = tipoPrograma.toLowerCase().includes('maestr');
+    return {
+      ...programa,
+      id: programa.id || programa.id_programa,
+      id_programa: programa.id_programa || programa.id,
+      title: programa.title || programa.nombre_programa || 'Sin título',
+      nombre_programa: programa.nombre_programa || programa.title,
+      description: programa.description || programa.descripcion || '',
+      type: esMaestria ? 'Maestría' : 'Diplomado',
+      tipo_programa: esMaestria ? 'Maestria' : 'Diplomado',
+      typeFilter: programa.maestria?.tipo || programa.typeFilter || '',
+      activo: programa.activo !== false,
+      status: programa.activo === false ? 'Inactivo' : 'Activo',
+      mencion: programa.mencion || '',
+    };
+  });
+
+  const fetchProgramCatalog = async () => {
+    setIsLoading(true);
+    try {
+      const response = await programaService.adminGetAll();
+      const rawItems = Array.isArray(response)
+        ? response
+        : (Array.isArray(response?.items) ? response.items : []);
+      const items = normalizeProgramas(rawItems);
+      setProgramCatalog(items);
+      return items;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredProgramCatalog = programCatalog
+    .filter((programa) => {
+      if (activeTab === 'maestrias' && programa.tipo_programa !== 'Maestria') return false;
+      if (activeTab === 'diplomados' && programa.tipo_programa !== 'Diplomado') return false;
+      if (programStatusFilter === 'activos' && !programa.activo) return false;
+      if (programStatusFilter === 'inactivos' && programa.activo) return false;
+      const query = globalSearch.trim().toLocaleLowerCase();
+      if (!query) return true;
+      return [programa.title, programa.id, programa.mencion, programa.area_conocimiento]
+        .some((value) => String(value || '').toLocaleLowerCase().includes(query));
+    })
+    .sort((a, b) => Number(b.activo) - Number(a.activo) || Number(b.id) - Number(a.id));
+  const featuredProgramIds = new Set(filteredProgramCatalog.filter((programa) => programa.activo).slice(0, 3).map((programa) => String(programa.id)));
+  const matchesMateriaSearch = (relacion) => {
+    const materia = relacion.materia || {};
+    const activo = materia.activo !== false;
+    const query = curriculumSearch.trim().toLocaleLowerCase();
+    const matchesText = !query || [relacion.id_mat, materia.nombre_mat, materia.descripcion]
+      .some((value) => String(value || '').toLocaleLowerCase().includes(query));
+    return matchesText && (subjectStatusFilter === 'todos' || (subjectStatusFilter === 'activos' ? activo : !activo));
+  };
+  const filteredProgramModules = programModules
+    .map((modulo) => ({ ...modulo, materias: (modulo.materias || []).filter(matchesMateriaSearch) }))
+    .filter((modulo) => !curriculumSearch.trim() || modulo.nombre_mod?.toLocaleLowerCase().includes(curriculumSearch.trim().toLocaleLowerCase()) || modulo.materias.length > 0);
+  const filteredProgramMallaSubjects = programMallaSubjects.filter(matchesMateriaSearch);
+  const filteredDocentes = docentes.filter((docente) => {
+    const query = docenteSearch.trim().toLocaleLowerCase();
+    const matchesText = !query || [docente.nombre_completo, docente.id, docente.nombre_doc, docente.apellido_doc]
+      .some((value) => String(value || '').toLocaleLowerCase().includes(query));
+    const activo = docente.activo !== false;
+    return matchesText && (docenteStatusFilter === 'todos' || (docenteStatusFilter === 'activos' ? activo : !activo));
+  });
+
+  const fetchCurriculumMallas = async (progId) => {
+    setCurriculumError('');
+    setProgramModules([]);
+    setSelectedMallaForCurriculum('');
+    if (!progId) {
+      setCurriculumMallas([]);
+      return;
+    }
+    setIsLoadingMallas(true);
+    try {
+      const mallas = await programaService.getMallas(progId);
+      const items = Array.isArray(mallas) ? mallas : [];
+      setCurriculumMallas(items);
+      setSelectedMallaForCurriculum((currentId) =>
+        items.some((malla) => String(malla.id_malla) === String(currentId))
+          ? String(currentId)
+          : String(items[0]?.id_malla || '')
+      );
+    } catch (err) {
+      setCurriculumMallas([]);
+      setCurriculumError(err.message || 'No se pudieron cargar las mallas del programa.');
+    } finally {
+      setIsLoadingMallas(false);
+    }
+  };
+
+  // The modules endpoint takes a malla ID, not a program ID.
+  const fetchCurriculumModules = async (mallaId) => {
+    setCurriculumError('');
+    setProgramMallaSubjects([]);
+    if (!mallaId) {
+      setProgramModules([]);
+      return;
+    }
     setIsLoadingModules(true);
     try {
-      const data = await programaService.getModulos(progId);
-      setProgramModules(Array.isArray(data?.modulos) ? data.modulos : []);
+      const selectedProgram = programCatalog.find(
+        (programa) => String(programa.id) === String(selectedProgramForCurriculum)
+      );
+      if (selectedProgram?.tipo_programa === 'Diplomado') {
+        const malla = await programaService.getMallaById(mallaId);
+        setProgramModules([]);
+        setProgramMallaSubjects(Array.isArray(malla?.materias_diplomado) ? malla.materias_diplomado : []);
+        return;
+      }
+      const data = await programaService.getModulos(mallaId);
+      setProgramModules(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error cargando módulos:', err);
+      setProgramModules([]);
+      setCurriculumError(err.message || 'Error al cargar los módulos de la malla.');
     } finally {
       setIsLoadingModules(false);
     }
   };
 
   useEffect(() => {
-    if (selectedProgramForCurriculum) {
-      fetchCurriculumModules(selectedProgramForCurriculum);
-    }
+    fetchCurriculumMallas(selectedProgramForCurriculum);
   }, [selectedProgramForCurriculum]);
+
+  useEffect(() => {
+    fetchCurriculumModules(selectedMallaForCurriculum);
+  }, [selectedMallaForCurriculum]);
 
   // PROGRAM CRUD HANDLERS (Editor de Pantalla Completa Ajustado a bd.sql)
   const handleOpenCreateProgram = () => {
@@ -325,7 +421,7 @@ export const AdminPortal = ({ onExitAdmin }) => {
     try {
       await programaService.delete(progId);
       showNotification('Programa eliminado de la base de datos');
-      fetchAllData();
+      setProgramCatalog((current) => current.filter((programa) => String(programa.id) !== String(progId)));
     } catch (err) {
       showNotification(err.message, 'error');
     }
@@ -336,7 +432,9 @@ export const AdminPortal = ({ onExitAdmin }) => {
     try {
       await programaService.updateStatus(programId, nextStatus);
       showNotification(`Estado de ${programId} cambiado a ${nextStatus}`);
-      fetchAllData();
+      setProgramCatalog((current) => current.map((programa) => String(programa.id) === String(programId)
+        ? { ...programa, activo: nextStatus === 'Activo', status: nextStatus }
+        : programa));
     } catch (err) {
       showNotification(err.message, 'error');
     }
@@ -356,27 +454,27 @@ export const AdminPortal = ({ onExitAdmin }) => {
   // MODULO CRUD
   const handleCreateModulo = async (e) => {
     e.preventDefault();
-    if (!selectedProgramForCurriculum || !moduloForm.nombre_mod) return;
+    if (!selectedMallaForCurriculum || !moduloForm.nombre_mod.trim()) return;
     try {
       await programaService.createModulo({
-        id_programa: selectedProgramForCurriculum,
+        id_malla: Number(selectedMallaForCurriculum),
         nombre_mod: moduloForm.nombre_mod
       });
       showNotification(`Módulo "${moduloForm.nombre_mod}" creado con éxito`);
       setModuloModalOpen(false);
       setModuloForm({ nombre_mod: '' });
-      fetchCurriculumModules(selectedProgramForCurriculum);
+      fetchCurriculumModules(selectedMallaForCurriculum);
     } catch (err) {
       showNotification(err.message, 'error');
     }
   };
 
   const handleDeleteModulo = async (idMod) => {
-    if (!window.confirm('¿Eliminar este módulo y todas sus asignaturas asociadas?')) return;
+    if (!window.confirm('¿Eliminar este módulo vacío? Los módulos con materias asociadas no se pueden eliminar.')) return;
     try {
       await programaService.deleteModulo(idMod);
-      showNotification('Módulo eliminado');
-      fetchCurriculumModules(selectedProgramForCurriculum);
+      showNotification('Módulo eliminado correctamente.');
+      fetchCurriculumModules(selectedMallaForCurriculum);
     } catch (err) {
       showNotification(err.message, 'error');
     }
@@ -385,37 +483,81 @@ export const AdminPortal = ({ onExitAdmin }) => {
   // MATERIA CRUD
   const handleOpenCreateMateria = (idMod) => {
     setTargetModuloId(idMod);
+    setPendingMateriaAssignment(null);
     setMateriaForm({
-      id_mat: `MAT-${Math.floor(100 + Math.random() * 900)}`,
       nombre_mat: '',
       creditos: 8,
       carga_horaria: 128,
-      tipo: 'Teórico-Práctica',
-      software_requerido: 'R, Python',
       descripcion: '',
-      id_docente: docentes.length > 0 ? docentes[0].id : ''
     });
     setMateriaModalOpen(true);
   };
 
   const handleSaveMateria = async (e) => {
     e.preventDefault();
+    const programaSeleccionado = programCatalog.find(
+      (programa) => String(programa.id) === String(selectedProgramForCurriculum)
+    );
+    const tipoPrograma = pendingMateriaAssignment?.tipoPrograma || programaSeleccionado?.tipo_programa;
+    const mallaId = pendingMateriaAssignment?.mallaId || selectedMallaForCurriculum;
+    const moduloId = pendingMateriaAssignment?.moduloId || targetModuloId;
+    const esDiplomado = tipoPrograma === 'Diplomado';
+    if (!tipoPrograma || (!esDiplomado && !moduloId) || !mallaId) {
+      showNotification('Selecciona un programa, malla y destino curricular válidos antes de guardar la materia.', 'error');
+      return;
+    }
+    let materia = pendingMateriaAssignment?.materia;
+    if (!materia) {
+      try {
+        materia = await programaService.createMateria({
+          nombre_mat: materiaForm.nombre_mat.trim(),
+          descripcion: materiaForm.descripcion.trim(),
+          tipo: tipoPrograma,
+        });
+      } catch (err) {
+        showNotification(`No se pudo crear la materia: ${err.message}`, 'error');
+        return;
+      }
+    }
+
     try {
-      await programaService.createMateria({ ...materiaForm, id_mod: targetModuloId });
-      showNotification(`Materia "${materiaForm.nombre_mat}" guardada exitosamente`);
+      const payloadAsignacion = {
+        id_mat: Number(materia.id_mat),
+        creditos: Number(materiaForm.creditos),
+        carga_horaria: Number(materiaForm.carga_horaria),
+      };
+      if (esDiplomado) {
+        await programaService.assignMateriaToMalla(mallaId, payloadAsignacion);
+      } else {
+        await programaService.assignMateriaToModulo(moduloId, payloadAsignacion);
+      }
+      setPendingMateriaAssignment(null);
+      showNotification(`Materia "${materiaForm.nombre_mat}" creada y asignada exitosamente`);
       setMateriaModalOpen(false);
-      fetchCurriculumModules(selectedProgramForCurriculum);
+      fetchCurriculumModules(selectedMallaForCurriculum);
     } catch (err) {
-      showNotification(err.message, 'error');
+      setPendingMateriaAssignment({
+        materia,
+        moduloId,
+        mallaId,
+        tipoPrograma,
+      });
+      showNotification(
+        err.status === 409
+          ? `La materia se creó, pero ya estaba asignada al plan. ${err.message}`
+          : `La materia ${materia.id_mat} sí se creó, pero no se pudo asignar al plan: ${err.message}`,
+        'warning'
+      );
+      fetchCurriculumModules(selectedMallaForCurriculum);
     }
   };
 
-  const handleDeleteMateria = async (idMat) => {
-    if (!window.confirm('¿Eliminar esta asignatura?')) return;
+  const handleToggleMateriaStatus = async (idMat, activo) => {
+    if (activo && !window.confirm('¿Desactivar esta materia? Se conservarán el registro y sus relaciones históricas.')) return;
     try {
-      await programaService.deleteMateria(idMat);
-      showNotification('Materia eliminada');
-      fetchCurriculumModules(selectedProgramForCurriculum);
+      await programaService.updateMateriaStatus(idMat, !activo);
+      showNotification(`Materia ${activo ? 'desactivada' : 'reactivada'} correctamente.`);
+      fetchCurriculumModules(selectedMallaForCurriculum);
     } catch (err) {
       showNotification(err.message, 'error');
     }
@@ -457,23 +599,13 @@ export const AdminPortal = ({ onExitAdmin }) => {
     }
   };
 
-  // DOCENTE HANDLERS (FULL CRUD & LOCAL UPLOAD)
+  // DOCENTE HANDLERS (API-supported fields)
   const handleOpenCreateDocente = () => {
     setEditingDocente(null);
     setDocenteForm({
-      nombre: '',
-      apellido: '',
-      email: '',
-      telefono: '',
-      titulo: 'PhD en Estadística',
-      especialidad: '',
-      categoria: 'Titular',
-      foto_url: '',
-      bio: '',
-      scholar: '',
-      researchgate: '',
-      linkedin: '',
-      orcid: ''
+      nombre_doc: '',
+      apellido_doc: '',
+      foto: '',
     });
     setDocenteModalOpen(true);
   };
@@ -481,60 +613,62 @@ export const AdminPortal = ({ onExitAdmin }) => {
   const handleOpenEditDocente = (doc) => {
     setEditingDocente(doc);
     setDocenteForm({
-      nombre: doc.nombre || '',
-      apellido: doc.apellido || '',
-      email: doc.email || '',
-      telefono: doc.telefono || '',
-      titulo: doc.titulo || 'PhD en Estadística',
-      especialidad: doc.especialidad || '',
-      categoria: doc.categoria || 'Titular',
-      foto_url: doc.foto_url || '',
-      bio: doc.bio || '',
-      scholar: doc.scholar || '',
-      researchgate: doc.researchgate || '',
-      linkedin: doc.linkedin || '',
-      orcid: doc.orcid || ''
+      nombre_doc: doc.nombre_doc || doc.nombre || '',
+      apellido_doc: doc.apellido_doc || doc.apellido || '',
+      foto: doc.foto || doc.foto_url || '',
     });
     setDocenteModalOpen(true);
   };
 
-  const handleDocenteFotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingDocFoto(true);
-    try {
-      const data = await docenteService.uploadFoto(file);
-      setDocenteForm(prev => ({ ...prev, foto_url: data.url }));
-      showNotification('Fotografía subida y resguardada localmente en el servidor');
-    } catch (err) {
-      showNotification(err.message, 'error');
-    } finally {
-      setIsUploadingDocFoto(false);
-    }
-  };
-
   const handleSaveDocente = async (e) => {
     e.preventDefault();
+    const payload = {
+      nombre_doc: docenteForm.nombre_doc.trim(),
+      apellido_doc: docenteForm.apellido_doc.trim(),
+      foto: docenteForm.foto.trim() || null,
+    };
     try {
+      let savedDocente;
       if (editingDocente) {
-        await docenteService.update(editingDocente.id, docenteForm);
+        savedDocente = await docenteService.update(editingDocente.id, payload);
       } else {
-        await docenteService.create(docenteForm);
+        savedDocente = await docenteService.create(payload);
       }
       showNotification(editingDocente ? 'Docente actualizado correctamente' : 'Docente registrado con éxito');
       setDocenteModalOpen(false);
-      fetchAllData();
+      const normalized = {
+        ...savedDocente,
+        id: savedDocente.id_doc || savedDocente.id || editingDocente?.id,
+        nombre_completo: savedDocente.nombre_completo || `${savedDocente.nombre_doc || payload.nombre_doc} ${savedDocente.apellido_doc || payload.apellido_doc}`.trim(),
+        foto_url: savedDocente.foto || savedDocente.foto_url || payload.foto || '',
+      };
+      setDocentes((current) => editingDocente
+        ? current.map((docente) => String(docente.id) === String(normalized.id) ? { ...docente, ...normalized } : docente)
+        : [normalized, ...current]);
+    } catch (err) {
+      showNotification(err.message, 'error');
+    }
+  };
+
+  const handleToggleDocenteStatus = async (docente) => {
+    const activo = docente.activo !== false;
+    try {
+      const updatedDocente = await docenteService.updateStatus(docente.id, !activo);
+      showNotification(`Docente ${activo ? 'desactivado' : 'reactivado'} correctamente.`);
+      setDocentes((current) => current.map((item) => String(item.id) === String(docente.id)
+        ? { ...item, ...(updatedDocente || {}), activo: !activo }
+        : item));
     } catch (err) {
       showNotification(err.message, 'error');
     }
   };
 
   const handleDeleteDocente = async (docId, docNombre) => {
-    if (!window.confirm(`¿Está seguro de eliminar al docente ${docNombre}? Esta acción removerá sus asignaciones docentes.`)) return;
+    if (!window.confirm(`¿Eliminar al docente ${docNombre}? Solo puede eliminarse si no está asignado a ediciones.`)) return;
     try {
       await docenteService.delete(docId);
       showNotification('Docente eliminado de la base de datos');
-      fetchAllData();
+      setDocentes((current) => current.filter((docente) => String(docente.id) !== String(docId)));
     } catch (err) {
       showNotification(err.message, 'error');
     }
@@ -752,7 +886,7 @@ export const AdminPortal = ({ onExitAdmin }) => {
           <Search size={15} className="adm-topbar-search-icon" />
           <input
             type="text"
-            placeholder="Buscar programas, docentes, convocatorias... (Ctrl+K)"
+            placeholder="Buscar programas por nombre, identificador o área..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
           />
@@ -787,85 +921,50 @@ export const AdminPortal = ({ onExitAdmin }) => {
       <div className="adm-body">
         {/* SIDEBAR COLAPSABLE */}
         <aside className={`adm-sidebar ${isSidebarCollapsed ? 'collapsed' : ''} ${isMobileSidebarOpen ? 'mobile-open' : ''}`}>
-          <div className="adm-sidebar-section-label">Módulos del Sistema</div>
-
+          <div className="adm-sidebar-section-label">Panel</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', padding: '0 6px' }}>
-            <button
-              onClick={() => { setActiveTab('programas'); setIsMobileSidebarOpen(false); }}
-              className={`adm-nav-item ${activeTab === 'programas' ? 'active' : ''}`}
-              title="Programas & Ofertas"
-            >
-              <span className="adm-nav-icon"><GraduationCap size={18} /></span>
-              <span className="adm-nav-label">Programas & Ofertas</span>
-              <span className="adm-badge">{programCatalog.length}</span>
+            <button onClick={() => { setActiveTab('dashboard'); setIsMobileSidebarOpen(false); }} className={`adm-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} title="Panel de administración">
+              <span className="adm-nav-icon"><Activity size={18} /></span><span className="adm-nav-label">Resumen</span>
             </button>
+          </div>
 
-            <button
-              onClick={() => { setActiveTab('convocatorias'); setIsMobileSidebarOpen(false); }}
-              className={`adm-nav-item ${activeTab === 'convocatorias' ? 'active' : ''}`}
-              title="Convocatorias Pasadas"
-            >
-              <span className="adm-nav-icon"><Archive size={18} /></span>
-              <span className="adm-nav-label">Convocatorias Pasadas</span>
-              <span className="adm-badge">{convocatoriasPasadas.length}</span>
-            </button>
+          <div className="adm-sidebar-section-label">Oferta académica</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', padding: '0 6px' }}>
+            {[
+              { id: 'programas', label: 'Todos los programas', icon: GraduationCap, count: programCatalog.length },
+              { id: 'maestrias', label: 'Maestrías', icon: Award, count: programCatalog.filter((item) => item.tipo_programa === 'Maestria').length },
+              { id: 'diplomados', label: 'Diplomados', icon: BookOpen, count: programCatalog.filter((item) => item.tipo_programa === 'Diplomado').length },
+              { id: 'modulos', label: 'Mallas y materias', icon: BookMarked },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileSidebarOpen(false); }} className={`adm-nav-item ${activeTab === item.id ? 'active' : ''}`} title={item.label}>
+                  <span className="adm-nav-icon"><Icon size={18} /></span><span className="adm-nav-label">{item.label}</span>
+                  {item.count !== undefined && <span className="adm-badge">{item.count}</span>}
+                </button>
+              );
+            })}
+          </div>
 
-            <button
-              onClick={() => { setActiveTab('modulos'); setIsMobileSidebarOpen(false); }}
-              className={`adm-nav-item ${activeTab === 'modulos' ? 'active' : ''}`}
-              title="Módulos & Materias"
-            >
-              <span className="adm-nav-icon"><BookMarked size={18} /></span>
-              <span className="adm-nav-label">Módulos & Materias</span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab('usuarios'); setIsMobileSidebarOpen(false); }}
-              className={`adm-nav-item ${activeTab === 'usuarios' ? 'active' : ''}`}
-              title="Gestión de Usuarios"
-            >
-              <span className="adm-nav-icon"><Users size={18} /></span>
-              <span className="adm-nav-label">Gestión de Usuarios</span>
-              <span className="adm-badge">{usuarios.length}</span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab('defensas'); setIsMobileSidebarOpen(false); }}
-              className={`adm-nav-item ${activeTab === 'defensas' ? 'active' : ''}`}
-              title="Defensas de Tesis"
-            >
-              <span className="adm-nav-icon"><Award size={18} /></span>
-              <span className="adm-nav-label">Defensas de Tesis</span>
-              <span className="adm-badge">{defensasTesis.length}</span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab('carrera'); setIsMobileSidebarOpen(false); }}
-              className={`adm-nav-item ${activeTab === 'carrera' ? 'active' : ''}`}
-              title="Info Carrera & IETA"
-            >
-              <span className="adm-nav-icon"><Landmark size={18} /></span>
-              <span className="adm-nav-label">Info Carrera & IETA</span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab('docentes'); setIsMobileSidebarOpen(false); }}
-              className={`adm-nav-item ${activeTab === 'docentes' ? 'active' : ''}`}
-              title="Planta Docente"
-            >
-              <span className="adm-nav-icon"><BookOpen size={18} /></span>
-              <span className="adm-nav-label">Planta Docente</span>
-              <span className="adm-badge">{docentes.length}</span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab('metricas'); setIsMobileSidebarOpen(false); }}
-              className={`adm-nav-item ${activeTab === 'metricas' ? 'active' : ''}`}
-              title="Métricas & Reportes"
-            >
-              <span className="adm-nav-icon"><Activity size={18} /></span>
-              <span className="adm-nav-label">Métricas & Reportes</span>
-            </button>
+          <div className="adm-sidebar-section-label">Administración</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', padding: '0 6px' }}>
+            {[
+              { id: 'docentes', label: 'Docentes', icon: Users, count: docentes.length },
+              { id: 'usuarios', label: 'Usuarios', icon: UserCheck, count: usuarios.length },
+              { id: 'roles', label: 'Roles y permisos', icon: Shield },
+              { id: 'convocatorias', label: 'Convocatorias', icon: Archive, count: convocatoriasPasadas.length },
+              { id: 'defensas', label: 'Defensas', icon: Award, count: defensasTesis.length },
+              { id: 'carrera', label: 'Carrera e IETA', icon: Landmark },
+              { id: 'metricas', label: 'Métricas', icon: TrendingUp },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <button key={item.id} onClick={() => { setActiveTab(item.id); setIsMobileSidebarOpen(false); }} className={`adm-nav-item ${activeTab === item.id ? 'active' : ''}`} title={item.label}>
+                  <span className="adm-nav-icon"><Icon size={18} /></span><span className="adm-nav-label">{item.label}</span>
+                  {item.count !== undefined && <span className="adm-badge">{item.count}</span>}
+                </button>
+              );
+            })}
           </div>
 
           {/* Botón inferior de colapso para escritorio */}
@@ -893,44 +992,119 @@ export const AdminPortal = ({ onExitAdmin }) => {
         {/* ÁREA DE CONTENIDO FLUIDA A PANTALLA COMPLETA */}
         <main className="adm-main">
           <div className="adm-content">
+            {activeTab === 'dashboard' && (
+              <section className="animate-fade-in" aria-labelledby="admin-dashboard-title">
+                <AdminSectionHeader
+                  title="Panel de administración"
+                  description="Resumen de registros disponibles en la API."
+                  actions={<button className="adm-btn adm-btn-secondary" onClick={fetchAllData} disabled={isLoading}>
+                    <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} /> Actualizar datos
+                  </button>}
+                />
+                {isLoading ? <div className="adm-loading-state" role="status">Cargando resumen…</div> : (
+                  <div className="adm-dashboard-grid">
+                    {[
+                      { label: 'Programas', value: programCatalog.length, tab: 'programas', icon: GraduationCap },
+                      { label: 'Maestrías', value: programCatalog.filter((item) => item.tipo_programa === 'Maestria').length, tab: 'maestrias', icon: Award },
+                      { label: 'Diplomados', value: programCatalog.filter((item) => item.tipo_programa === 'Diplomado').length, tab: 'diplomados', icon: BookOpen },
+                      { label: 'Docentes', value: docentes.length, tab: 'docentes', icon: Users },
+                      { label: 'Usuarios', value: usuarios.length, tab: 'usuarios', icon: UserCheck },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      return <button key={item.tab} className="adm-dashboard-card" onClick={() => setActiveTab(item.tab)}>
+                        <span className="adm-dashboard-card-icon"><Icon size={18} /></span>
+                        <span className="adm-dashboard-card-label">{item.label}</span>
+                        <strong className="adm-dashboard-card-value">{item.value}</strong>
+                        <span className="adm-dashboard-card-link">Abrir módulo <ChevronRight size={14} /></span>
+                      </button>;
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {activeTab === 'roles' && (
+              <section className="animate-fade-in" aria-labelledby="roles-panel-title">
+                <AdminSectionHeader title="Roles y permisos" description="Resumen del control de acceso que aplica actualmente la API." section="Administración · Accesos" />
+                <div className="adm-role-grid">
+                  <article className="adm-card">
+                    <h2 className="adm-card-title"><Shield size={17} /> Administrador</h2>
+                    <p>Puede gestionar los registros protegidos por el middleware de administrador.</p>
+                    <span className="adm-status adm-status-active">Rol vigente</span>
+                  </article>
+                  <article className="adm-card">
+                    <h2 className="adm-card-title"><UserCheck size={17} /> Usuario</h2>
+                    <p>Rol válido para autenticación; las operaciones administrativas permanecen protegidas.</p>
+                    <span className="adm-status adm-status-info">Rol vigente</span>
+                  </article>
+                </div>
+                <p className="adm-access-note" role="note">La API solo admite los roles <strong>admin</strong> y <strong>usuario</strong>. La asignación de permisos granulares no está implementada como entidad independiente; este panel es informativo y no altera autorizaciones.</p>
+              </section>
+            )}
+
             {/* 1. SECCIÓN PROGRAMAS */}
-            {activeTab === 'programas' && (
+            {['programas', 'maestrias', 'diplomados'].includes(activeTab) && (
               <div className="animate-fade-in">
-                {fixedEditorOpen ? (
+                <>
+                {fixedEditorOpen && (
                   <ProgramEditorFixed
                     initialProgramId={selectedProgramForEditor}
-                    onSaved={() => {
+                    existingPrograms={programCatalog}
+                    onSaved={async () => {
                       setFixedEditorOpen(false);
                       setSelectedProgramForEditor(null);
-                      fetchAllData();
-                      showNotification('¡Programa guardado y sincronizado correctamente con la base de datos!');
+                      try {
+                        await fetchProgramCatalog();
+                        showNotification('¡Programa guardado y sincronizado correctamente con la base de datos!');
+                      } catch (error) {
+                        showNotification(`El programa se guardó, pero no se pudo actualizar el catálogo: ${error.message}`, 'error');
+                      }
                     }}
                     onCancel={() => {
                       setFixedEditorOpen(false);
                       setSelectedProgramForEditor(null);
                     }}
                   />
-                ) : (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                      <div>
-                        <h3 style={{ fontSize: '1.35rem', color: 'var(--color-text-main)', fontWeight: 800, margin: 0 }}>
-                          Catálogo de Programas de Postgrado
-                        </h3>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                          Crea, edita y gestiona las convocatorias de maestrías y diplomados.
-                        </p>
-                      </div>
-
-                      <button
+                )}
+                <div className={fixedEditorOpen ? 'adm-catalog-editor-open' : ''}>
+                    <AdminSectionHeader
+                      section="Administración · Oferta académica"
+                      title={activeTab === 'maestrias' ? 'Maestrías' : activeTab === 'diplomados' ? 'Diplomados' : 'Programas académicos'}
+                      description="Catálogo institucional con estado, clasificación y acceso a edición integrada."
+                      actions={<button
                         onClick={handleOpenCreateProgram}
                         className="btn btn-primary"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                       >
                         <Plus size={16} />
                         <span>Nuevo Programa</span>
-                      </button>
+                      </button>}
+                    />
+
+                    <div className="adm-table-notice">
+                      <Info size={14} aria-hidden="true" />
+                      Los cursos habilitados se muestran primero. Los 3 primeros aparecen destacados.
                     </div>
+                    <div className="adm-table-toolbar adm-program-toolbar">
+                      <div className="adm-table-search">
+                        <Search size={15} className="adm-table-search-icon" />
+                        <input
+                          type="search"
+                          aria-label="Buscar programas"
+                          placeholder="Buscar por nombre, identificador, mención o área..."
+                          value={globalSearch}
+                          onChange={(event) => setGlobalSearch(event.target.value)}
+                        />
+                      </div>
+                      <select aria-label="Filtrar programas por estado" className="adm-filter-select" value={programStatusFilter} onChange={(event) => setProgramStatusFilter(event.target.value)}>
+                        <option value="todos">Todos los estados</option>
+                        <option value="activos">Activos</option>
+                        <option value="inactivos">Inactivos</option>
+                      </select>
+                      <span className="adm-result-count">{filteredProgramCatalog.length} resultados</span>
+                    </div>
+
+                    {isLoading && <div className="adm-loading-state" role="status">Actualizando catálogo…</div>}
 
                     <div className="data-table-container">
                       <table className="data-table">
@@ -939,38 +1113,39 @@ export const AdminPortal = ({ onExitAdmin }) => {
                             <th>Código / ID</th>
                             <th>Nombre del Programa</th>
                             <th>Tipo / Nivel</th>
-                            <th>Créditos</th>
-                            <th>Cupos</th>
+                            <th>Mención / área</th>
                             <th>Estado</th>
-                            <th>Acciones CRUD</th>
+                            <th>Acciones</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {programCatalog.map((prog) => {
-                            const isActivo = prog.status === 'Activo';
+                          {filteredProgramCatalog.map((prog) => {
+                            const isActivo = prog.activo;
+                            const isExpanded = String(expandedProgramId) === String(prog.id);
                             return (
-                              <tr key={prog.id}>
+                              <React.Fragment key={prog.id}>
+                              <tr className={featuredProgramIds.has(String(prog.id)) ? 'adm-program-row-featured' : ''}>
                                 <td style={{ fontWeight: 700, fontFamily: 'var(--font-family-mono)', color: 'var(--color-text-main)' }}>
                                   {prog.id}
                                 </td>
                                 <td>
-                                  <div style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>{prog.title}</div>
+                                  <button className="adm-program-title-button" onClick={() => setExpandedProgramId(isExpanded ? null : prog.id)} aria-expanded={isExpanded}>
+                                    {prog.title}
+                                    {featuredProgramIds.has(String(prog.id)) && <span className="adm-badge-featured">Prioritario</span>}
+                                  </button>
                                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-subtle)' }}>
-                                    {prog.mencion ? `Mención: ${prog.mencion} · ` : ''}{prog.resolution}
+                                    {prog.description || 'Sin descripción disponible'}
                                   </div>
                                 </td>
                                 <td>
                                   <span className={`badge ${prog.type === 'Maestría' ? 'badge-green-inst' : 'badge-blue'}`}>
-                                    {prog.type} ({prog.typeFilter || 'Autofinanciada'})
+                                    {prog.type}{prog.typeFilter ? ` · ${prog.typeFilter}` : ''}
                                   </span>
                                 </td>
-                                <td>{prog.credits} créditos</td>
-                                <td>
-                                  <strong>{prog.cupo_usados || 0}</strong> / {prog.cupo_total || 25}
-                                </td>
+                                <td>{prog.mencion || prog.area_conocimiento || '—'}</td>
                                 <td>
                                   <button
-                                    onClick={() => handleToggleProgramStatus(prog.id, prog.status)}
+                                    onClick={() => handleToggleProgramStatus(prog.id, isActivo ? 'Activo' : 'Inactivo')}
                                     className={`badge ${isActivo ? 'badge-green' : 'badge-red'}`}
                                     style={{ cursor: 'pointer', border: 'none' }}
                                     title="Clic para alternar estado"
@@ -980,14 +1155,6 @@ export const AdminPortal = ({ onExitAdmin }) => {
                                 </td>
                                 <td>
                                   <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                    <button
-                                      onClick={() => handleConcluirPrograma(prog.id, prog.title)}
-                                      className="btn btn-secondary btn-sm"
-                                      style={{ padding: '0.35rem 0.6rem', color: 'var(--color-green-inst)' }}
-                                      title="Concluir edición y mandar al repositorio de Convocatorias Pasadas"
-                                    >
-                                      <Archive size={14} />
-                                    </button>
                                     <button
                                       onClick={() => handleOpenEditProgram(prog)}
                                       className="btn btn-secondary btn-sm"
@@ -1004,16 +1171,37 @@ export const AdminPortal = ({ onExitAdmin }) => {
                                     >
                                       <Trash2 size={14} />
                                     </button>
+                                    <button onClick={() => setExpandedProgramId(isExpanded ? null : prog.id)} className="btn btn-secondary btn-sm" title={isExpanded ? 'Ocultar detalle' : 'Ver detalle'} aria-label={isExpanded ? 'Ocultar detalle' : 'Ver detalle'}>
+                                      <Eye size={14} />
+                                    </button>
                                   </div>
                                 </td>
                               </tr>
+                              {isExpanded && (
+                                <tr className="adm-program-detail-row">
+                                  <td colSpan={6}>
+                                    <div className="adm-program-detail-grid">
+                                      <div><strong>Descripción</strong><p>{prog.description || 'No registrada'}</p></div>
+                                      <div><strong>Área de conocimiento</strong><p>{prog.area_conocimiento || 'No registrada'}</p></div>
+                                      <div><strong>Perfil aspirante</strong><p>{prog.perfil_aspirante || 'No registrado'}</p></div>
+                                      <div><strong>Perfil de egreso</strong><p>{prog.perfil_egreso || 'No registrado'}</p></div>
+                                      <div><strong>Mallas</strong><p>{Array.isArray(prog.mallas) ? prog.mallas.map((malla) => malla.nombre_malla).filter(Boolean).join(', ') || 'Sin mallas' : 'Sin mallas'}</p></div>
+                                      <div><strong>Ediciones</strong><p>{Array.isArray(prog.ediciones) ? prog.ediciones.map((edicion) => edicion.nombre_edicion).filter(Boolean).join(', ') || 'Sin ediciones' : 'Sin ediciones'}</p></div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                              </React.Fragment>
                             );
                           })}
+                          {filteredProgramCatalog.length === 0 && (
+                            <tr><td colSpan={6} className="adm-empty-row">No hay programas que coincidan con los filtros.</td></tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
-                  </>
-                )}
+                </div>
+                </>
               </div>
             )}
 
@@ -1150,18 +1338,21 @@ export const AdminPortal = ({ onExitAdmin }) => {
                       Administración de Módulos & Malla Curricular
                     </h3>
                     <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                      Crea módulos y asigna materias con sus créditos, software y docentes en la base de datos PostgreSQL.
+                      Selecciona un programa y su malla para gestionar la estructura curricular.
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => setModuloModalOpen(true)}
-                    className="btn btn-primary"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                  >
-                    <FolderPlus size={16} />
-                    <span>+ Crear Módulo</span>
-                  </button>
+                  {programCatalog.find((p) => String(p.id) === String(selectedProgramForCurriculum))?.tipo_programa === 'Diplomado' ? (
+                    <button onClick={() => handleOpenCreateMateria('')} className="btn btn-primary" disabled={!selectedMallaForCurriculum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Plus size={16} />
+                      <span>Agregar Materia</span>
+                    </button>
+                  ) : (
+                    <button onClick={() => setModuloModalOpen(true)} className="btn btn-primary" disabled={!selectedMallaForCurriculum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <FolderPlus size={16} />
+                      <span>Crear Módulo</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Selector de programa */}
@@ -1184,20 +1375,168 @@ export const AdminPortal = ({ onExitAdmin }) => {
                         </option>
                       ))}
                     </select>
+
+                    <label htmlFor="curriculum-malla" style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-text-main)' }}>
+                      Malla curricular:
+                    </label>
+                    <select
+                      id="curriculum-malla"
+                      value={selectedMallaForCurriculum}
+                      onChange={(e) => setSelectedMallaForCurriculum(e.target.value)}
+                      className="form-select"
+                      style={{ maxWidth: '360px', fontWeight: 700 }}
+                      disabled={isLoadingMallas || curriculumMallas.length === 0}
+                    >
+                      {curriculumMallas.length === 0 && <option value="">Sin mallas disponibles</option>}
+                      {curriculumMallas.map((malla) => (
+                        <option key={malla.id_malla} value={malla.id_malla}>
+                          {malla.nombre_malla} (#{malla.id_malla})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
+                {moduloModalOpen && (
+                  <section className="glass-card" aria-labelledby="module-editor-title" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.25rem', background: '#ffffff' }}>
+                    <h4 id="module-editor-title" style={{ marginTop: 0 }}>Nuevo módulo</h4>
+                    <form onSubmit={handleCreateModulo}>
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="new-module-name">Nombre del módulo</label>
+                        <input
+                          id="new-module-name"
+                          type="text"
+                          required
+                          maxLength={150}
+                          value={moduloForm.nombre_mod}
+                          onChange={(e) => setModuloForm({ ...moduloForm, nombre_mod: e.target.value })}
+                          className="form-input"
+                        />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                        <button type="button" onClick={() => setModuloModalOpen(false)} className="btn btn-secondary">Cancelar</button>
+                        <button type="submit" className="btn btn-primary" disabled={!selectedMallaForCurriculum}>Guardar módulo</button>
+                      </div>
+                    </form>
+                  </section>
+                )}
+
+                {materiaModalOpen && (
+                  <section className="glass-card" aria-labelledby="subject-editor-title" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.25rem', background: '#ffffff' }}>
+                    <h4 id="subject-editor-title" style={{ marginTop: 0 }}>
+                      {pendingMateriaAssignment ? 'Reintentar asignación de materia' : 'Nueva materia para la malla'}
+                    </h4>
+                    {pendingMateriaAssignment && (
+                      <p role="status">La materia #{pendingMateriaAssignment.materia.id_mat} ya fue creada. Al guardar se reintentará la asignación a su destino original.</p>
+                    )}
+                    <form onSubmit={handleSaveMateria}>
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="new-subject-name">Nombre de la materia</label>
+                        <input
+                          id="new-subject-name"
+                          type="text"
+                          required
+                          maxLength={150}
+                          value={materiaForm.nombre_mat}
+                          onChange={(e) => setMateriaForm({ ...materiaForm, nombre_mat: e.target.value })}
+                          className="form-input"
+                          disabled={Boolean(pendingMateriaAssignment)}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="new-subject-description">Descripción</label>
+                        <textarea
+                          id="new-subject-description"
+                          required
+                          value={materiaForm.descripcion}
+                          onChange={(e) => setMateriaForm({ ...materiaForm, descripcion: e.target.value })}
+                          className="form-textarea"
+                          disabled={Boolean(pendingMateriaAssignment)}
+                        />
+                      </div>
+                      <p>Tipo académico: {programCatalog.find((p) => String(p.id) === String(selectedProgramForCurriculum))?.tipo_programa === 'Diplomado' ? 'Diplomado' : 'Maestría'} (determinado por el programa seleccionado)</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                        <div className="form-group">
+                          <label className="form-label" htmlFor="new-subject-credits">Créditos</label>
+                          <input id="new-subject-credits" type="number" min="1" required value={materiaForm.creditos} onChange={(e) => setMateriaForm({ ...materiaForm, creditos: e.target.value })} className="form-input" />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label" htmlFor="new-subject-hours">Carga horaria</label>
+                          <input id="new-subject-hours" type="number" min="1" required value={materiaForm.carga_horaria} onChange={(e) => setMateriaForm({ ...materiaForm, carga_horaria: e.target.value })} className="form-input" />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                        <button type="button" onClick={() => {
+                          if (pendingMateriaAssignment && !window.confirm(`La materia #${pendingMateriaAssignment.materia.id_mat} quedará creada sin asignación. ¿Cerrar igualmente?`)) return;
+                          setMateriaModalOpen(false);
+                          setPendingMateriaAssignment(null);
+                        }} className="btn btn-secondary">Cancelar</button>
+                        <button type="submit" className="btn btn-primary">{pendingMateriaAssignment ? 'Reintentar asignación' : 'Crear y asignar materia'}</button>
+                      </div>
+                    </form>
+                  </section>
+                )}
+
                 {/* Listado de módulos y materias */}
-                {isLoadingModules ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-green-inst)' }}>
-                    Cargando estructura curricular desde PostgreSQL...
+                {curriculumError && (
+                  <div role="alert" style={{ marginBottom: '1rem', padding: '0.85rem 1rem', background: 'var(--adm-danger-bg)', border: '1px solid var(--adm-border)', borderRadius: 'var(--adm-radius)', color: 'var(--adm-danger)' }}>
+                    {curriculumError}
                   </div>
-                ) : programModules.length === 0 ? (
+                )}
+                {selectedMallaForCurriculum && !isLoadingMallas && (
+                  <div className="adm-table-toolbar adm-program-toolbar">
+                    <div className="adm-table-search">
+                      <Search size={15} className="adm-table-search-icon" />
+                      <input type="search" aria-label="Buscar materias" placeholder="Buscar materias por nombre o código..." value={curriculumSearch} onChange={(event) => setCurriculumSearch(event.target.value)} />
+                    </div>
+                    <select className="adm-filter-select" aria-label="Filtrar materias por estado" value={subjectStatusFilter} onChange={(event) => setSubjectStatusFilter(event.target.value)}>
+                      <option value="todos">Todas las materias</option><option value="activos">Activas</option><option value="inactivos">Inactivas</option>
+                    </select>
+                  </div>
+                )}
+                {isLoadingMallas || isLoadingModules ? (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-green-inst)' }}>
+                    Cargando mallas y estructura curricular...
+                  </div>
+                ) : !selectedMallaForCurriculum ? (
                   <div className="glass-card" style={{ textAlign: 'center', padding: '3rem', background: '#ffffff' }}>
                     <BookMarked size={36} color="var(--color-text-subtle)" style={{ margin: '0 auto 1rem auto' }} />
-                    <p style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>No hay módulos registrados para este programa.</p>
+                    <p style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>No hay mallas disponibles para este programa.</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                      Crea o selecciona una malla desde el asistente de Programas antes de añadir módulos.
+                    </p>
+                  </div>
+                ) : programCatalog.find((p) => String(p.id) === String(selectedProgramForCurriculum))?.tipo_programa === 'Diplomado' ? (
+                  filteredProgramMallaSubjects.length === 0 ? (
+                    <div className="glass-card" style={{ textAlign: 'center', padding: '3rem', background: '#ffffff' }}>
+                      <BookMarked size={36} color="var(--color-text-subtle)" style={{ margin: '0 auto 1rem auto' }} />
+                      <p style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>No hay materias asignadas a esta malla de Diplomado.</p>
+                      <button onClick={() => handleOpenCreateMateria('')} className="btn btn-primary btn-sm">Agregar primera materia</button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {filteredProgramMallaSubjects.map((item) => (
+                        <div key={item.id_mat} className="glass-card" style={{ background: '#ffffff', border: '1px solid var(--color-border)', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                          <div>
+                            <strong>{item.materia?.nombre_mat || `Materia ${item.id_mat}`}</strong>
+                            <div style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '0.3rem' }}>
+                              {item.pivot?.creditos ?? '—'} créditos · {item.pivot?.carga_horaria ?? '—'} horas
+                            </div>
+                            {item.materia?.descripcion && <p style={{ margin: '0.35rem 0 0' }}>{item.materia.descripcion}</p>}
+                          </div>
+                          <button onClick={() => handleToggleMateriaStatus(item.id_mat, item.materia?.activo !== false)} className="btn btn-secondary btn-sm" title={item.materia?.activo === false ? 'Reactivar materia' : 'Desactivar materia'}>
+                            {item.materia?.activo === false ? <RefreshCw size={14} /> : <Archive size={14} />}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : filteredProgramModules.length === 0 ? (
+                  <div className="glass-card" style={{ textAlign: 'center', padding: '3rem', background: '#ffffff' }}>
+                    <BookMarked size={36} color="var(--color-text-subtle)" style={{ margin: '0 auto 1rem auto' }} />
+                    <p style={{ fontWeight: 700, color: 'var(--color-text-main)' }}>No hay módulos registrados en esta malla.</p>
                     <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
-                      Comienza creando el primer módulo (ej. "Módulo I: Fundamentos Estadísticos") para estructurar las materias.
+                      Crea el primer módulo para estructurar las materias de esta Maestría.
                     </p>
                     <button onClick={() => setModuloModalOpen(true)} className="btn btn-primary btn-sm">
                       + Crear Primer Módulo
@@ -1205,7 +1544,7 @@ export const AdminPortal = ({ onExitAdmin }) => {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-                    {programModules.map((mod, mIdx) => (
+                    {filteredProgramModules.map((mod, mIdx) => (
                       <div key={mod.id_mod} className="glass-card" style={{ background: '#ffffff', border: '1.5px solid var(--color-border)', padding: '1.5rem' }}>
                         {/* Modulo Header */}
                         <div style={{
@@ -1242,7 +1581,7 @@ export const AdminPortal = ({ onExitAdmin }) => {
                               onClick={() => handleDeleteModulo(mod.id_mod)}
                               className="btn btn-secondary btn-sm"
                               style={{ color: 'var(--color-status-danger)', padding: '0.4rem 0.7rem' }}
-                              title="Eliminar este módulo"
+                              title="Eliminar módulo vacío; los módulos con materias asociadas se conservan"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -1285,25 +1624,23 @@ export const AdminPortal = ({ onExitAdmin }) => {
                                       {mat.id_mat}
                                     </span>
                                     <strong style={{ fontSize: '0.95rem', color: 'var(--color-text-main)' }}>
-                                      {mat.nombre_mat}
+                                      {mat.materia?.nombre_mat || `Materia ${mat.id_mat}`}
                                     </strong>
                                   </div>
 
                                   <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
-                                    <span><strong>Créditos:</strong> {mat.creditos} ({mat.carga_horaria} hrs)</span>
-                                    <span><strong>Tipo:</strong> {mat.tipo}</span>
-                                    {mat.software_requerido && <span><strong>Software:</strong> {mat.software_requerido}</span>}
-                                    {mat.nombre_docente && <span><strong>Docente:</strong> {mat.nombre_docente}</span>}
+                                    <span><strong>Créditos:</strong> {mat.pivot?.creditos ?? '—'} ({mat.pivot?.carga_horaria ?? '—'} hrs)</span>
+                                    {mat.materia?.descripcion && <span>{mat.materia.descripcion}</span>}
                                   </div>
                                 </div>
 
                                 <button
-                                  onClick={() => handleDeleteMateria(mat.id_mat)}
+                                  onClick={() => handleToggleMateriaStatus(mat.id_mat, mat.materia?.activo !== false)}
                                   className="btn btn-secondary btn-sm"
-                                  style={{ color: 'var(--color-status-danger)', padding: '0.35rem 0.6rem' }}
-                                  title="Eliminar materia"
+                                  style={{ color: mat.materia?.activo === false ? 'var(--color-green-inst)' : 'var(--color-status-danger)', padding: '0.35rem 0.6rem' }}
+                                  title={mat.materia?.activo === false ? 'Reactivar materia' : 'Desactivar materia'}
                                 >
-                                  <Trash2 size={14} />
+                                  {mat.materia?.activo === false ? <RefreshCw size={14} /> : <Archive size={14} />}
                                 </button>
                               </div>
                             ))}
@@ -1331,43 +1668,75 @@ export const AdminPortal = ({ onExitAdmin }) => {
               <CarreraPanel />
             )}
 
-            {/* 5. SECCIÓN DOCENTES (PLANTEL DOCENTE CON FOTO Y REDES) */}
+            {/* 5. SECCIÓN DOCENTES */}
             {activeTab === 'docentes' && (
               <div className="animate-fade-in">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.35rem', color: 'var(--color-text-main)', fontWeight: 800, margin: 0 }}>
-                      Planta Docente e Investigadores
-                    </h3>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                      Gestión de catedráticos, fotografía con resguardo en servidor, biografía y perfiles académicos.
-                    </p>
-                  </div>
-
-                  <button
+                <AdminSectionHeader
+                  section="Administración · Equipo académico"
+                  title="Docentes"
+                  description="Gestiona los nombres y la referencia de fotografía admitidos por la API actual."
+                  actions={<button
                     onClick={handleOpenCreateDocente}
                     className="btn btn-primary"
                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                   >
                     <Plus size={16} />
                     <span>Registrar Docente</span>
-                  </button>
+                  </button>}
+                />
+
+                <div className="adm-table-toolbar adm-program-toolbar">
+                  <div className="adm-table-search">
+                    <Search size={15} className="adm-table-search-icon" />
+                    <input type="search" aria-label="Buscar docentes" placeholder="Buscar por nombre o identificador..." value={docenteSearch} onChange={(event) => setDocenteSearch(event.target.value)} />
+                  </div>
+                  <select className="adm-filter-select" aria-label="Filtrar docentes por estado" value={docenteStatusFilter} onChange={(event) => setDocenteStatusFilter(event.target.value)}>
+                    <option value="todos">Todos los estados</option><option value="activos">Activos</option><option value="inactivos">Inactivos</option>
+                  </select>
+                  <span className="adm-result-count">{filteredDocentes.length} docentes</span>
                 </div>
+
+                {docenteModalOpen && (
+                  <section className="glass-card" aria-labelledby="teacher-editor-title" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.25rem', background: '#ffffff' }}>
+                    <h4 id="teacher-editor-title" style={{ marginTop: 0 }}>
+                      {editingDocente ? 'Editar docente' : 'Registrar docente'}
+                    </h4>
+                    <form onSubmit={handleSaveDocente}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                        <div className="form-group">
+                          <label className="form-label" htmlFor="teacher-first-name">Nombres</label>
+                          <input id="teacher-first-name" type="text" required maxLength={150} value={docenteForm.nombre_doc} onChange={(e) => setDocenteForm({ ...docenteForm, nombre_doc: e.target.value })} className="form-input" />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label" htmlFor="teacher-last-name">Apellidos</label>
+                          <input id="teacher-last-name" type="text" required maxLength={150} value={docenteForm.apellido_doc} onChange={(e) => setDocenteForm({ ...docenteForm, apellido_doc: e.target.value })} className="form-input" />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="teacher-photo">Fotografía (URL o ruta existente)</label>
+                        <input id="teacher-photo" type="text" value={docenteForm.foto} onChange={(e) => setDocenteForm({ ...docenteForm, foto: e.target.value })} className="form-input" />
+                        <small>El API solo almacena una cadena en el campo foto; no hay una ruta de carga multipart disponible.</small>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                        <button type="button" onClick={() => setDocenteModalOpen(false)} className="btn btn-secondary">Cancelar</button>
+                        <button type="submit" className="btn btn-primary">{editingDocente ? 'Actualizar docente' : 'Guardar docente'}</button>
+                      </div>
+                    </form>
+                  </section>
+                )}
 
                 <div className="data-table-container">
                   <table className="data-table">
                     <thead>
                       <tr>
                         <th>Fotografía</th>
-                        <th>Docente / Investigador</th>
-                        <th>Grado & Especialidad</th>
-                        <th>Contacto</th>
-                        <th>Perfiles Académicos</th>
+                        <th>Docente</th>
+                        <th>Estado</th>
                         <th>Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {docentes.map((doc) => (
+                      {filteredDocentes.map((doc) => (
                         <tr key={doc.id}>
                           <td>
                             <img
@@ -1387,42 +1756,20 @@ export const AdminPortal = ({ onExitAdmin }) => {
                           </td>
                           <td>
                             <strong style={{ color: 'var(--color-text-main)' }}>{doc.nombre_completo}</strong>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-subtle)' }}>ID: {doc.id} · {doc.categoria || 'Docente Titular'}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-subtle)' }}>ID: {doc.id}</div>
                           </td>
                           <td>
-                            <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{doc.titulo}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{doc.especialidad || 'Estadística Aplicada'}</div>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '0.85rem' }}>{doc.email}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{doc.telefono || 'Sin teléfono'}</div>
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                              {doc.scholar && (
-                                <a href={doc.scholar} target="_blank" rel="noopener noreferrer" className="badge badge-blue" style={{ textDecoration: 'none', fontSize: '0.68rem' }}>
-                                  Scholar
-                                </a>
-                              )}
-                              {doc.researchgate && (
-                                <a href={doc.researchgate} target="_blank" rel="noopener noreferrer" className="badge badge-green" style={{ textDecoration: 'none', fontSize: '0.68rem' }}>
-                                  RG
-                                </a>
-                              )}
-                              {doc.linkedin && (
-                                <a href={doc.linkedin} target="_blank" rel="noopener noreferrer" className="badge badge-blue" style={{ textDecoration: 'none', fontSize: '0.68rem' }}>
-                                  LinkedIn
-                                </a>
-                              )}
-                              {doc.orcid && (
-                                <a href={doc.orcid} target="_blank" rel="noopener noreferrer" className="badge badge-amber" style={{ textDecoration: 'none', fontSize: '0.68rem' }}>
-                                  ORCID
-                                </a>
-                              )}
-                            </div>
+                            <span className={`badge ${doc.activo === false ? 'badge-red' : 'badge-green'}`}>{doc.activo === false ? 'Inactivo' : 'Activo'}</span>
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.4rem' }}>
+                              <button
+                                onClick={() => handleToggleDocenteStatus(doc)}
+                                className="btn btn-secondary btn-sm"
+                                title={doc.activo === false ? 'Reactivar docente' : 'Desactivar docente'}
+                              >
+                                {doc.activo === false ? <RefreshCw size={14} /> : <UserX size={14} />}
+                              </button>
                               <button
                                 onClick={() => handleOpenEditDocente(doc)}
                                 className="btn btn-secondary btn-sm"
@@ -1435,7 +1782,7 @@ export const AdminPortal = ({ onExitAdmin }) => {
                                 onClick={() => handleDeleteDocente(doc.id, doc.nombre_completo)}
                                 className="btn btn-secondary btn-sm"
                                 style={{ padding: '0.35rem 0.6rem', color: 'var(--color-status-danger)' }}
-                                title="Eliminar docente"
+                                title="Eliminar docente; solo está permitido sin ediciones asociadas"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -1492,157 +1839,6 @@ export const AdminPortal = ({ onExitAdmin }) => {
         </main>
       </div>
     </div>
-
-        {/* ===== MODALES (fuera del adm-shell, dentro del fragment) ===== */}
-
-        {/* MODAL: CREAR MÓDULO */}
-        {moduloModalOpen && (
-          <div className="modal-overlay" onClick={() => setModuloModalOpen(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-              <div className="modal-header">
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>
-                  Crear Nuevo Módulo Académico
-                </h3>
-                <button className="modal-close-btn" onClick={() => setModuloModalOpen(false)}>
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateModulo} className="modal-body">
-                <div className="form-group">
-                  <label className="form-label">Nombre del Módulo</label>
-                  <input
-                    type="text"
-                    required
-                    value={moduloForm.nombre_mod}
-                    onChange={(e) => setModuloForm({ ...moduloForm, nombre_mod: e.target.value })}
-                    className="form-input"
-                    placeholder="Ej. Módulo I: Fundamentos Estadísticos"
-                  />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-                  <button type="button" onClick={() => setModuloModalOpen(false)} className="btn btn-secondary">
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Guardar Módulo
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: AGREGAR MATERIA */}
-        {materiaModalOpen && (
-          <div className="modal-overlay" onClick={() => setMateriaModalOpen(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
-              <div className="modal-header">
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>
-                  Agregar Asignatura / Materia
-                </h3>
-                <button className="modal-close-btn" onClick={() => setMateriaModalOpen(false)}>
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveMateria} className="modal-body">
-                <div className="form-group">
-                  <label className="form-label">Nombre de la Materia</label>
-                  <input
-                    type="text"
-                    required
-                    value={materiaForm.nombre_mat}
-                    onChange={(e) => setMateriaForm({ ...materiaForm, nombre_mat: e.target.value })}
-                    className="form-input"
-                    placeholder="Ej. Inferencia Estadística y Modelamiento Bayesiano"
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Créditos</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="30"
-                      required
-                      value={materiaForm.creditos}
-                      onChange={(e) => setMateriaForm({ ...materiaForm, creditos: e.target.value })}
-                      className="form-input"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Carga Horaria (hrs)</label>
-                    <input
-                      type="number"
-                      min="10"
-                      max="200"
-                      required
-                      value={materiaForm.carga_horaria}
-                      onChange={(e) => setMateriaForm({ ...materiaForm, carga_horaria: e.target.value })}
-                      className="form-input"
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Tipo de Materia</label>
-                    <select
-                      value={materiaForm.tipo}
-                      onChange={(e) => setMateriaForm({ ...materiaForm, tipo: e.target.value })}
-                      className="form-select"
-                    >
-                      <option value="Teórico-Práctica">Teórico-Práctica</option>
-                      <option value="Laboratorio">Laboratorio Computacional</option>
-                      <option value="Teórica">Teórica</option>
-                      <option value="Práctica">Práctica</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Software Requerido</label>
-                    <input
-                      type="text"
-                      value={materiaForm.software_requerido}
-                      onChange={(e) => setMateriaForm({ ...materiaForm, software_requerido: e.target.value })}
-                      className="form-input"
-                      placeholder="Ej. R, Python, SPSS, SAS"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Docente Responsable</label>
-                  <select
-                    value={materiaForm.id_docente}
-                    onChange={(e) => setMateriaForm({ ...materiaForm, id_docente: e.target.value })}
-                    className="form-select"
-                  >
-                    <option value="">-- Sin docente asignado --</option>
-                    {docentes.map(d => (
-                      <option key={d.id} value={d.id}>
-                        {d.nombre_completo} ({d.titulo})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-                  <button type="button" onClick={() => setMateriaModalOpen(false)} className="btn btn-secondary">
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Guardar Asignatura
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
         {/* MODAL: PROGRAM CRUD (CREAR / EDITAR) */}
         {programModalOpen && (
@@ -2136,242 +2332,6 @@ export const AdminPortal = ({ onExitAdmin }) => {
             </div>
           </div>
         )}
-
-        {/* MODAL: REGISTRAR / EDITAR DOCENTE */}
-        {docenteModalOpen && (
-          <div className="modal-overlay" onClick={() => setDocenteModalOpen(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px', maxHeight: '90vh', overflowY: 'auto' }}>
-              <div className="modal-header">
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text-main)', margin: 0 }}>
-                  {editingDocente ? `Editar Docente: ${editingDocente.nombre_completo}` : 'Registrar Nuevo Docente'}
-                </h3>
-                <button className="modal-close-btn" onClick={() => setDocenteModalOpen(false)}>
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveDocente} className="modal-body">
-                {/* SUBIDA DE FOTOGRAFÍA CON RESGUARDO LOCAL */}
-                <div style={{
-                  background: 'var(--color-bg-primary)',
-                  padding: '1rem',
-                  borderRadius: 'var(--radius-md)',
-                  marginBottom: '1rem',
-                  border: '1.5px dashed var(--color-border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1.25rem'
-                }}>
-                  <div style={{ position: 'relative' }}>
-                    <img
-                      src={docenteForm.foto_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
-                      alt="Foto docente"
-                      style={{
-                        width: '72px',
-                        height: '72px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '2px solid var(--color-green-inst)',
-                        background: '#e2e8f0'
-                      }}
-                      onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80';
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ flex: 1 }}>
-                    <label className="form-label" style={{ marginBottom: '0.3rem', fontWeight: 700 }}>
-                      Fotografía del Docente (Resguardo en Servidor)
-                    </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Upload size={14} />
-                        <span>{isUploadingDocFoto ? 'Subiendo imagen...' : 'Subir Imagen Local'}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleDocenteFotoUpload}
-                          disabled={isUploadingDocFoto}
-                          style={{ display: 'none' }}
-                        />
-                      </label>
-                      {docenteForm.foto_url && (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-green-inst)', fontWeight: 600 }}>
-                          ✓ Imagen guardada
-                        </span>
-                      )}
-                    </div>
-                    <input
-                      type="url"
-                      value={docenteForm.foto_url}
-                      onChange={(e) => setDocenteForm({ ...docenteForm, foto_url: e.target.value })}
-                      className="form-input"
-                      placeholder="O ingrese enlace directo de imagen..."
-                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Nombres</label>
-                    <input
-                      type="text"
-                      required
-                      value={docenteForm.nombre}
-                      onChange={(e) => setDocenteForm({ ...docenteForm, nombre: e.target.value })}
-                      className="form-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Apellidos</label>
-                    <input
-                      type="text"
-                      required
-                      value={docenteForm.apellido}
-                      onChange={(e) => setDocenteForm({ ...docenteForm, apellido: e.target.value })}
-                      className="form-input"
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Email</label>
-                    <input
-                      type="email"
-                      required
-                      value={docenteForm.email}
-                      onChange={(e) => setDocenteForm({ ...docenteForm, email: e.target.value })}
-                      className="form-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Teléfono</label>
-                    <input
-                      type="text"
-                      value={docenteForm.telefono}
-                      onChange={(e) => setDocenteForm({ ...docenteForm, telefono: e.target.value })}
-                      className="form-input"
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Título Académico</label>
-                    <input
-                      type="text"
-                      required
-                      value={docenteForm.titulo}
-                      onChange={(e) => setDocenteForm({ ...docenteForm, titulo: e.target.value })}
-                      className="form-input"
-                      placeholder="Ej. PhD en Estadística"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Categoría Docente</label>
-                    <select
-                      value={docenteForm.categoria}
-                      onChange={(e) => setDocenteForm({ ...docenteForm, categoria: e.target.value })}
-                      className="form-select"
-                    >
-                      <option value="Titular">Titular</option>
-                      <option value="Invitado Internacional">Invitado Internacional</option>
-                      <option value="Investigador Titular">Investigador Titular</option>
-                      <option value="Emérito">Emérito</option>
-                      <option value="Interino">Interino</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Especialidad / Líneas de Investigación</label>
-                  <input
-                    type="text"
-                    value={docenteForm.especialidad}
-                    onChange={(e) => setDocenteForm({ ...docenteForm, especialidad: e.target.value })}
-                    className="form-input"
-                    placeholder="Ej. Modelamiento Espacial, Bioestadística, Machine Learning"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Biografía / Perfil Académico Resumido</label>
-                  <textarea
-                    rows={2}
-                    value={docenteForm.bio}
-                    onChange={(e) => setDocenteForm({ ...docenteForm, bio: e.target.value })}
-                    className="form-textarea"
-                    placeholder="Breve reseña sobre experiencia académica, publicaciones y proyectos..."
-                  />
-                </div>
-
-                {/* REDES Y PERFILES ACADÉMICOS */}
-                <div style={{ background: 'var(--color-bg-primary)', padding: '0.9rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', border: '1px solid var(--color-border)' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-green-inst)', marginBottom: '0.6rem', textTransform: 'uppercase' }}>
-                    Perfiles Académicos & Redes de Investigación
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem' }}>Google Scholar</label>
-                      <input
-                        type="url"
-                        value={docenteForm.scholar}
-                        onChange={(e) => setDocenteForm({ ...docenteForm, scholar: e.target.value })}
-                        className="form-input"
-                        placeholder="https://scholar.google.com/..."
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem' }}>ResearchGate</label>
-                      <input
-                        type="url"
-                        value={docenteForm.researchgate}
-                        onChange={(e) => setDocenteForm({ ...docenteForm, researchgate: e.target.value })}
-                        className="form-input"
-                        placeholder="https://researchgate.net/profile/..."
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem' }}>LinkedIn</label>
-                      <input
-                        type="url"
-                        value={docenteForm.linkedin}
-                        onChange={(e) => setDocenteForm({ ...docenteForm, linkedin: e.target.value })}
-                        className="form-input"
-                        placeholder="https://linkedin.com/in/..."
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem' }}>ORCID</label>
-                      <input
-                        type="url"
-                        value={docenteForm.orcid}
-                        onChange={(e) => setDocenteForm({ ...docenteForm, orcid: e.target.value })}
-                        className="form-input"
-                        placeholder="https://orcid.org/0000-..."
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-                  <button type="button" onClick={() => setDocenteModalOpen(false)} className="btn btn-secondary">
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Save size={16} />
-                    <span>{editingDocente ? 'Actualizar Docente' : 'Guardar Docente'}</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
 
     </>
   );

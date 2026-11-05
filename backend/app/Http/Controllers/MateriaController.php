@@ -20,9 +20,10 @@ class MateriaController extends Controller
     public function listarMaterias()
     {
         $materias = Materia::with([
-            'materiaMaestria',
-            'moduloDiplomado',
+            'materiaMaestria.modulos.malla.programa.ediciones.docentes',
+            'moduloDiplomado.mallas.programa.ediciones.docentes',
         ])
+            ->orderByDesc('activo')
             ->orderBy('id_mat')
             ->get();
 
@@ -67,6 +68,7 @@ class MateriaController extends Controller
                 'required',
                 'string',
                 'max:150',
+                Rule::unique('materia', 'nombre_mat'),
             ],
             'descripcion' => [
                 'required',
@@ -313,6 +315,7 @@ class MateriaController extends Controller
                 'required',
                 'string',
                 'max:150',
+                Rule::unique('materia', 'nombre_mat')->ignore($materia->id_mat, 'id_mat'),
             ],
             'descripcion' => [
                 'sometimes',

@@ -77,7 +77,8 @@ class ProgramaPostgradoController extends Controller
             'mallas',
             'ediciones',
         ])
-        ->orderBy('id_programa', 'asc')
+        ->orderByDesc('activo')
+        ->orderByDesc('id_programa')
         ->get();
 
         return response()->json([
@@ -189,6 +190,8 @@ class ProgramaPostgradoController extends Controller
                 'string',
                 'max:150',
                 'filled',
+                Rule::unique('programa_postgrado', 'nombre_programa')
+                    ->where('tipo_programa', $request->input('tipo_programa')),
             ],
 
             'descripcion' => [
@@ -309,6 +312,9 @@ class ProgramaPostgradoController extends Controller
                 'string',
                 'max:150',
                 'filled',
+                Rule::unique('programa_postgrado', 'nombre_programa')
+                    ->where('tipo_programa', $programa->tipo_programa)
+                    ->ignore($programa->id_programa, 'id_programa'),
             ],
 
             'descripcion' => [

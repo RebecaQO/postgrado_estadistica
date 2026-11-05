@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Check, X, AlertCircle } from 'lucide-react';
 import { apiJson } from '../../../utils/api';
+import AdminSectionHeader from '../AdminSectionHeader';
 
 export default function UsuariosPanel() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
@@ -138,27 +140,27 @@ export default function UsuariosPanel() {
     }
   };
 
+  const usuariosFiltrados = usuarios.filter((usuario) => {
+    const query = search.trim().toLocaleLowerCase();
+    return !query || [usuario.id, usuario.nombre, usuario.email, usuario.rol]
+      .some((value) => String(value || '').toLocaleLowerCase().includes(query));
+  });
+
   return (
     <div className="animate-fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h3 style={{ fontSize: '1.35rem', color: 'var(--color-text-main)', fontWeight: 800, margin: 0 }}>
-            Gestión de Usuarios y Accesos
-          </h3>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', margin: 0 }}>
-            Administra los usuarios autorizados para operar el portal de postgrado.
-          </p>
-        </div>
-
-        <button
+      <AdminSectionHeader
+        section="Administración · Accesos"
+        title="Usuarios"
+        description="Administra las cuentas autorizadas para operar el portal de posgrado."
+        actions={<button
           onClick={abrirCrear}
           className="btn btn-primary"
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
         >
           <Plus size={16} />
           <span>Nuevo Usuario</span>
-        </button>
-      </div>
+        </button>}
+      />
 
       {error && (
         <div style={{
@@ -176,6 +178,13 @@ export default function UsuariosPanel() {
           <span>{error}</span>
         </div>
       )}
+
+      <div className="adm-table-toolbar adm-program-toolbar">
+        <div className="adm-table-search">
+          <input type="search" aria-label="Buscar usuarios" placeholder="Buscar por identificador, nombre, correo o rol..." value={search} onChange={(event) => setSearch(event.target.value)} />
+        </div>
+        <span className="adm-result-count">{usuariosFiltrados.length} usuarios</span>
+      </div>
 
       {loading ? (
         <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
@@ -195,14 +204,14 @@ export default function UsuariosPanel() {
               </tr>
             </thead>
             <tbody>
-              {usuarios.length === 0 ? (
+              {usuariosFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
-                    No se encontraron usuarios registrados.
+                    No se encontraron usuarios que coincidan con la búsqueda.
                   </td>
                 </tr>
               ) : (
-                usuarios.map((usr) => (
+                usuariosFiltrados.map((usr) => (
                   <tr key={usr.id}>
                     <td style={{ fontFamily: 'var(--font-family-mono)', fontWeight: 700 }}>
                       {usr.id}
@@ -252,17 +261,11 @@ export default function UsuariosPanel() {
       )}
 
       {modalOpen && (
-        <div className="modal-backdrop" style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'var(--color-bg-card, #ffffff)', padding: '2rem', borderRadius: '8px',
-            width: '100%', maxWidth: '480px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
-          }}>
+        <section className="glass-card" aria-labelledby="user-editor-title" style={{ background: '#ffffff', padding: '1.5rem', marginBottom: '1.25rem', border: '1.5px solid var(--color-border)' }}>
             <h4 style={{ margin: '0 0 1.25rem 0', color: 'var(--color-text-main)' }}>
+              <span id="user-editor-title">
               {editing ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
+              </span>
             </h4>
 
             <form onSubmit={guardar}>
@@ -357,8 +360,7 @@ export default function UsuariosPanel() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </section>
       )}
     </div>
   );

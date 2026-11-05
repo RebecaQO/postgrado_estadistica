@@ -1,0 +1,5 @@
+ id_programa |                nombre_programa                | tipo_programa | activo 
+-------------+-----------------------------------------------+---------------+--------
+          21 | Maestria en Bioestadistica y Modelos Clinicos | Maestria      | t
+(1 row)
+

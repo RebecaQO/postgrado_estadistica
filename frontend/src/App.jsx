@@ -82,9 +82,11 @@ const MainApp = () => {
     setCurrentTab('programas');
   };
 
-  const handleLoginSuccess = () => {
-    setCurrentTab('portal-admin');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleLoginSuccess = (user) => {
+    if (user?.role === 'admin') {
+      setCurrentTab('portal-admin');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleOpenProgramDetail = (prog) => {

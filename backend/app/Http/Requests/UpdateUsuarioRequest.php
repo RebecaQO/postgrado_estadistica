@@ -20,7 +20,13 @@ class UpdateUsuarioRequest extends FormRequest
             : $usuarioParam;
 
         return [
-            'nombre' => ['sometimes', 'required', 'string', 'max:100'],
+            'nombre' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('usuarios', 'nombre')->ignore($usuarioId, 'id_usuario'),
+            ],
             'email' => [
                 'sometimes',
                 'required',

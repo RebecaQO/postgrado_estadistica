@@ -71,11 +71,13 @@ class LoginFlowTest extends TestCase
 
     private function crearUsuario(): Usuario
     {
+        Schema::dropIfExists('usuarios');
         Schema::create('usuarios', function (Blueprint $table): void {
             $table->id('id_usuario');
             $table->string('nombre')->unique();
             $table->string('password');
             $table->string('rol');
+            $table->boolean('activo')->default(true);
             $table->timestamps();
         });
 
@@ -83,6 +85,7 @@ class LoginFlowTest extends TestCase
             'nombre' => 'admin',
             'password' => '12345',
             'rol' => 'admin',
+            'activo' => true,
         ]);
     }
 }

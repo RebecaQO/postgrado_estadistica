@@ -67,12 +67,15 @@ export const AuthProvider = ({ children }) => {
       if (!data?.token) {
         throw new Error('La respuesta de autenticación no incluyó un token');
       }
+      if (!['admin', 'usuario'].includes(data.user?.role)) {
+        throw new Error('La respuesta de autenticación no incluyó un rol permitido');
+      }
       setAuthToken(data.token);
 
       const normalizedUser = {
         ...DEFAULT_PROFILES.admin,
         ...data.user,
-        role: data.user?.role || 'admin',
+        role: data.user.role,
         name: data.user?.nombre || data.user?.name || data.user?.email || DEFAULT_PROFILES.admin.name,
       };
 

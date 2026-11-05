@@ -4,11 +4,57 @@ namespace App\Http\Controllers;
 
 use App\Models\Usuario;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class AutenticacionController extends Controller
 {
+    public function mostrarLogin(): View
+    {
+        return view('auth.login');
+    }
+
+    public function iniciarSesion(Request $request): RedirectResponse
+    {
+        $datos = $request->validate([
+            'nombre' => ['required', 'string'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $usuario = Usuario::where('nombre', $datos['nombre'])->first();
+
+        if (
+            !$usuario ||
+            !Hash::check($datos['password'], $usuario->password) ||
+            (array_key_exists('activo', $usuario->getAttributes()) && !$usuario->activo)
+        ) {
+            return back()
+                ->withErrors(['nombre' => 'Las credenciales no son válidas o la cuenta está inactiva.'])
+                ->onlyInput('nombre');
+        }
+
+        Auth::login($usuario);
+        $request->session()->regenerate();
+
+        return redirect()->route('inicio');
+    }
+
+    public function mostrarInicio(Request $request): View
+    {
+        return view('inicio', ['usuario' => $request->user()]);
+    }
+
+    public function cerrarSesion(Request $request): RedirectResponse
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
+    }
+
     // ==========================================
     // INICIAR SESION
     // ==========================================
@@ -47,6 +93,13 @@ class AutenticacionController extends Controller
                 'success' => false,
                 'message' => 'Credenciales incorrectas.',
             ], 401);
+        }
+
+        if (!$usuario->activo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La cuenta está inactiva. Contacta al administrador.',
+            ], 403);
         }
 
         // Aceptar solamente los roles existentes.

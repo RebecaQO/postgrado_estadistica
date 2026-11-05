@@ -16,7 +16,11 @@ class DocenteController extends Controller
 
     public function listarDocentes()
     {
-        $docentes = Docente::orderBy('apellido_doc')
+        $docentes = Docente::with([
+            'ediciones.programa',
+        ])
+            ->orderByDesc('activo')
+            ->orderBy('apellido_doc')
             ->orderBy('nombre_doc')
             ->get();
 
@@ -84,6 +88,7 @@ class DocenteController extends Controller
                 'required',
                 'string',
                 'max:150',
+                Rule::unique('docente', 'nombre_doc')->where('apellido_doc', $request->input('apellido_doc')),
             ],
             'apellido_doc' => [
                 'required',
@@ -135,6 +140,9 @@ class DocenteController extends Controller
                 'required',
                 'string',
                 'max:150',
+                Rule::unique('docente', 'nombre_doc')
+                    ->where('apellido_doc', $request->input('apellido_doc', $docente->apellido_doc))
+                    ->ignore($docente->id_doc, 'id_doc'),
             ],
             'apellido_doc' => [
                 'sometimes',
