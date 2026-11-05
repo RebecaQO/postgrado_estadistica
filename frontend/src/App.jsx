@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ApplicantsProvider } from './context/ApplicantsContext';
 import { Navbar } from './components/layout/Navbar';
@@ -28,10 +28,26 @@ import { AdminPortal } from './components/portals/AdminPortal';
 import './styles/index.css';
 import './styles/components.css';
 
+const getInitialHashState = () => {
+  const hash = typeof window !== 'undefined' ? window.location.hash || '' : '';
+  if (hash.startsWith('#programa/') || hash.startsWith('#/programa/')) {
+    const id = hash.replace(/^#\/?programa\//, '');
+    return {
+      tab: 'programa-detalle',
+      programId: id ? decodeURIComponent(id) : null,
+    };
+  }
+  if (hash === '#programas' || hash === '#/programas') {
+    return { tab: 'programas', programId: null };
+  }
+  return { tab: 'inicio', programId: null };
+};
+
 const MainApp = () => {
-  const [currentTab, setCurrentTab] = useState('inicio');
+  const initial = getInitialHashState();
+  const [currentTab, setCurrentTab] = useState(initial.tab);
   const [selectedProgramModal, setSelectedProgramModal] = useState(null);
-  const [selectedProgramDetailId, setSelectedProgramDetailId] = useState(null);
+  const [selectedProgramDetailId, setSelectedProgramDetailId] = useState(initial.programId);
   const [targetProgramForAdmission, setTargetProgramForAdmission] = useState(null);
   const [programFilterState, setProgramFilterState] = useState(null);
   const { currentUser } = useAuth();

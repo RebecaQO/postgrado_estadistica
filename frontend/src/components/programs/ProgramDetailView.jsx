@@ -88,6 +88,89 @@ const getDirectDownloadLink = (url) => {
   return url;
 };
 
+// ── Shared UI Styles con la Paleta Corporativa UMSA ──
+const cleanPanelStyle = {
+  background: '#FFFFFF',
+  borderRadius: '10px',
+  border: '1px solid #DCE1E6',
+  padding: '1.75rem 2rem',
+  boxShadow: '0 2px 10px rgba(55, 58, 64, 0.03)'
+};
+
+const sectionHeaderStyle = (bg, color) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.85rem',
+  marginBottom: '1.5rem',
+  paddingBottom: '1rem',
+  borderBottom: '1px solid #DCE1E6'
+});
+
+const iconBadgeStyle = (bg, color) => ({
+  width: '42px',
+  height: '42px',
+  borderRadius: '8px',
+  background: bg,
+  color: color,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0
+});
+
+const sectionTitleStyle = {
+  fontSize: '1.25rem',
+  fontWeight: 800,
+  color: '#373A40',
+  margin: '0 0 0.2rem 0',
+  letterSpacing: '-0.01em'
+};
+
+const sectionSubtitleStyle = {
+  fontSize: '0.825rem',
+  color: '#646973',
+  margin: 0
+};
+
+const dateCardStyle = {
+  background: '#FFFFFF',
+  border: '1.5px solid #DCE1E6',
+  borderRadius: '8px',
+  padding: '1.15rem'
+};
+
+const dateBadgeStyle = (bg, color) => ({
+  display: 'inline-block',
+  background: bg,
+  color: color,
+  fontSize: '0.72rem',
+  fontWeight: 800,
+  padding: '0.2rem 0.55rem',
+  borderRadius: '4px',
+  marginBottom: '0.4rem',
+  border: `1px solid ${color}40`
+});
+
+const dateTitleStyle = {
+  fontSize: '0.92rem',
+  fontWeight: 800,
+  color: '#373A40',
+  marginBottom: '0.2rem'
+};
+
+const dateValueStyle = {
+  fontSize: '0.825rem',
+  fontWeight: 700,
+  color: '#006400',
+  marginBottom: '0.35rem'
+};
+
+const dateDescStyle = {
+  fontSize: '0.78rem',
+  color: '#646973',
+  lineHeight: 1.45
+};
+
 export const ProgramDetailView = ({ programId, program: initialProgram, onBack, onNavigateToAdmission }) => {
   const [programData, setProgramData] = useState(initialProgram || null);
   const [loading, setLoading] = useState(true);
@@ -1778,87 +1861,4 @@ export const ProgramDetailView = ({ programId, program: initialProgram, onBack, 
       `}</style>
     </div>
   );
-};
-
-// ── Shared UI Styles con la Paleta Corporativa UMSA ──
-const cleanPanelStyle = {
-  background: '#FFFFFF',
-  borderRadius: '10px',
-  border: '1px solid #DCE1E6',
-  padding: '1.75rem 2rem',
-  boxShadow: '0 2px 10px rgba(55, 58, 64, 0.03)'
-};
-
-const sectionHeaderStyle = (bg, color) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.85rem',
-  marginBottom: '1.5rem',
-  paddingBottom: '1rem',
-  borderBottom: '1px solid #DCE1E6'
-});
-
-const iconBadgeStyle = (bg, color) => ({
-  width: '42px',
-  height: '42px',
-  borderRadius: '8px',
-  background: bg,
-  color: color,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0
-});
-
-const sectionTitleStyle = {
-  fontSize: '1.25rem',
-  fontWeight: 800,
-  color: '#373A40',
-  margin: '0 0 0.2rem 0',
-  letterSpacing: '-0.01em'
-};
-
-const sectionSubtitleStyle = {
-  fontSize: '0.825rem',
-  color: '#646973',
-  margin: 0
-};
-
-const dateCardStyle = {
-  background: '#FFFFFF',
-  border: '1.5px solid #DCE1E6',
-  borderRadius: '8px',
-  padding: '1.15rem'
-};
-
-const dateBadgeStyle = (bg, color) => ({
-  display: 'inline-block',
-  background: bg,
-  color: color,
-  fontSize: '0.72rem',
-  fontWeight: 800,
-  padding: '0.2rem 0.55rem',
-  borderRadius: '4px',
-  marginBottom: '0.4rem',
-  border: `1px solid ${color}40`
-});
-
-const dateTitleStyle = {
-  fontSize: '0.92rem',
-  fontWeight: 800,
-  color: '#373A40',
-  marginBottom: '0.2rem'
-};
-
-const dateValueStyle = {
-  fontSize: '0.825rem',
-  fontWeight: 700,
-  color: '#006400',
-  marginBottom: '0.35rem'
-};
-
-const dateDescStyle = {
-  fontSize: '0.78rem',
-  color: '#646973',
-  lineHeight: 1.45
 };
