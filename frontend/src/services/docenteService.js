@@ -18,6 +18,8 @@ export const docenteService = {
     `/api/docentes/${id}/${activo ? 'reactivar' : 'desactivar'}`,
     { method: 'PATCH' }
   ),
+  assignToEdicion: (idEdicion, idDoc) => apiJson(`/api/ediciones/${idEdicion}/docentes`, { method: 'POST', body: { id_doc: idDoc } }),
+  removeFromEdicion: (idEdicion, idDoc) => apiJson(`/api/ediciones/${idEdicion}/docentes/${idDoc}`, { method: 'DELETE' }),
 };
 
 export default docenteService;
