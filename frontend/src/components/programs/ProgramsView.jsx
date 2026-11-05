@@ -155,7 +155,7 @@ export const ProgramsView = ({ onNavigateToAdmission, initialFilter = null, onSe
         const matchDesc = (prog.description || '').toLowerCase().includes(q);
         const matchArea = (prog.area || '').toLowerCase().includes(q);
         const matchMencion = (prog.mencion || '').toLowerCase().includes(q);
-        const matchCode = (prog.id || prog.code || '').toLowerCase().includes(q);
+        const matchCode = String(prog.id || prog.code || '').toLowerCase().includes(q);
         if (!matchTitle && !matchDesc && !matchArea && !matchMencion && !matchCode) return false;
       }
 

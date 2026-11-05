@@ -36,7 +36,7 @@ export const ProgramDetailModal = ({ program: initialProgram, onClose, onApply }
 
         const edicion = raw.ediciones?.[0] ?? {};
         const mallaActiva = raw.mallas?.find(m => m.activo) ?? raw.mallas?.[0] ?? {};
-        const esMaestria = (raw.tipo_programa || '').toLowerCase().includes('maestr');
+        const esMaestria = String(raw.tipo_programa || '').toLowerCase().includes('maestr');
 
         // Construir curriculum desde malla
         let curriculum = [];

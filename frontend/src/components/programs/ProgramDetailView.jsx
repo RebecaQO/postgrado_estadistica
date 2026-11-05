@@ -45,9 +45,9 @@ import postTerminalEstadistica from '../../assets/images/banner/post_maestria_te
 import postDataMining from '../../assets/images/banner/post_diplomado_data_mining.jpg';
 
 const getProgramBannerUrl = (prog) => {
-  const id = (prog?.id || '').toLowerCase();
-  const code = (prog?.code || '').toLowerCase();
-  const title = (prog?.title || '').toLowerCase();
+  const id = String(prog?.id ?? '').toLowerCase();
+  const code = String(prog?.code ?? '').toLowerCase();
+  const title = String(prog?.title ?? '').toLowerCase();
 
   if (id === 'pg-est-002' || id === 'msc-ciencia-datos' || code.includes('m01') || title.includes('ciencia') || title.includes('datos')) {
     return cardCienciaDatos;
@@ -62,9 +62,9 @@ const getProgramBannerUrl = (prog) => {
 };
 
 const getProgramPostUrl = (prog) => {
-  const id = (prog?.id || '').toLowerCase();
-  const code = (prog?.code || '').toLowerCase();
-  const title = (prog?.title || '').toLowerCase();
+  const id = String(prog?.id ?? '').toLowerCase();
+  const code = String(prog?.code ?? '').toLowerCase();
+  const title = String(prog?.title ?? '').toLowerCase();
 
   if (id === 'pg-est-002' || id === 'msc-ciencia-datos' || code.includes('m01') || title.includes('ciencia') || title.includes('datos')) {
     return postCienciaDatos;
@@ -324,11 +324,11 @@ export const ProgramDetailView = ({ programId, program: initialProgram, onBack, 
     );
   }
 
-  const isMaster = (prog.type || '').toLowerCase().includes('maestr') ||
+  const isMaster = String(prog.type || '').toLowerCase().includes('maestr') ||
     prog.typeFilter === 'maestria' ||
     prog.typeFilter === 'terminal' ||
     prog.typeFilter === 'autofinanciada' ||
-    (prog.title || '').toLowerCase().includes('maestr');
+    String(prog.title || '').toLowerCase().includes('maestr');
 
   const curriculum = prog.curriculum || [];
   const targetAudienceText = prog.perfil_aspirante || prog.targetAudience || 
