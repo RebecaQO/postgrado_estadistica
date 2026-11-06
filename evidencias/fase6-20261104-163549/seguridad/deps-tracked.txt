@@ -1,1 +1,0 @@
-OK: Ningún archivo de vendor/ o node_modules/ está en git

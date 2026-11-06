@@ -1,2 +1,0 @@
-
-{"message":"The id edicion field is required. (and 4 more errors)","errors":{"id_edicion":["The id edicion field is required."],"titulo_tesis":["The titulo tesis field is required."],"autor":["The autor field is required."],"fecha_defensa":["The fecha defensa field is required."],"resultado":["The resultado field is required."]}}

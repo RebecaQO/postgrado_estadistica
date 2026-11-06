@@ -1,5 +1,0 @@
-0001_01_01_000000_create_users_table.php
-0001_01_01_000001_create_cache_table.php
-0001_01_01_000002_create_jobs_table.php
-2026_10_18_215147_create_personal_access_tokens_table.php
-2026_11_02_001707_agregar_activo_a_tablas_academicas.php
