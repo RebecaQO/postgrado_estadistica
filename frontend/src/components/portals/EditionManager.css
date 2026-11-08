@@ -1,0 +1,26 @@
+.em-shell { width: 100%; color: var(--adm-text, #0f172a); }
+.em-heading, .em-form-head, .em-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
+.em-heading { margin-bottom: 22px; }
+.em-heading h2 { display: flex; align-items: center; gap: 10px; font-size: 1.4rem; margin: 16px 0 6px; }
+.em-heading p, .em-muted { color: var(--adm-text-2, #64748b); }
+.em-heading p { margin: 0; font-size: .9rem; }
+.em-alert { border: 1px solid #e5bb63; background: #fffbeb; color: #854d0e; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; }
+.em-alert-error { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
+.em-alert-success { border-color: #86efac; background: #f0fdf4; color: #166534; }
+.em-form { padding: 22px; border-radius: 10px; border: 1px solid var(--adm-border, #e2e8f0); background: white; }
+.em-form-head { margin-bottom: 16px; }
+.em-form h3 { margin: 0; }
+.em-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.em-field { display: flex; flex-direction: column; gap: 7px; font-size: .88rem; font-weight: 650; }
+.em-field input, .em-field select, .em-field textarea { width: 100%; box-sizing: border-box; font: inherit; font-weight: 400; padding: 10px 12px; background: white; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 7px; }
+.em-field input:focus, .em-field select:focus, .em-field textarea:focus { outline: 2px solid #86efac; border-color: #0f5a38; }
+.em-field input:disabled, .em-field select:disabled { background: #f1f5f9; color: #64748b; }
+.em-field small { font-weight: 400; color: #64748b; }
+.em-wide { grid-column: 1 / -1; }
+.em-actions { justify-content: flex-end; margin-top: 20px; }
+.em-table td, .em-table th { vertical-align: middle; }
+.em-table .btn, .em-heading .btn, .em-form .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.em-muted { font-size: .76rem; margin-top: 4px; }
+.em-teachers { display: inline-flex; align-items: center; gap: 5px; }
+.em-empty { padding: 30px; text-align: center; border: 1px dashed #cbd5e1; border-radius: 8px; background: white; }
+@media (max-width: 760px) { .em-fields { grid-template-columns: 1fr; } .em-form { padding: 14px; } }
