@@ -12,6 +12,7 @@ class DefensaTesisResource extends JsonResource
         return [
             'id' => $this->id_defensa,
             'id_defensa' => $this->id_defensa,
+            'activo' => (bool) $this->activo,
             'id_edicion' => $this->id_edicion,
             'titulo_tesis' => $this->titulo_tesis,
             'autor' => $this->autor,

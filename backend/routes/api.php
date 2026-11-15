@@ -437,6 +437,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/defensas-tesis', [\App\Http\Controllers\Api\DefensaTesisController::class, 'store']);
         Route::put('/defensas-tesis/{id}', [\App\Http\Controllers\Api\DefensaTesisController::class, 'update']);
         Route::delete('/defensas-tesis/{id}', [\App\Http\Controllers\Api\DefensaTesisController::class, 'destroy']);
+        Route::patch(
+            '/defensas-tesis/{id}/reactivar',
+            [\App\Http\Controllers\Api\DefensaTesisController::class, 'reactivar']
+        );
+
 
         // ==========================================
         // SUBMODULO 4.3: INFORMACION INSTITUCIONAL (ADMIN)

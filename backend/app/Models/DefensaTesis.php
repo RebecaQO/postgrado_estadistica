@@ -28,12 +28,14 @@ class DefensaTesis extends Model
         'resultado',
         'estado',
         'observaciones',
+        'activo',
     ];
 
     protected $casts = [
         'id_defensa' => 'integer',
         'id_edicion' => 'integer',
         'fecha_defensa' => 'date:Y-m-d',
+        'activo' => 'boolean',
     ];
 
     protected $appends = [
