@@ -17,6 +17,10 @@ return Application::configure(
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
+        // La API queda detrás de Traefik en Dokploy. Confiar en el proxy permite
+        // reconocer la IP y el esquema HTTPS originales para límites y URLs.
+        $middleware->trustProxies(at: 'private_ranges');
+
         // Registrar middleware personalizado.
         $middleware->alias([
             'administrador' =>

@@ -5,8 +5,15 @@ services:
       dockerfile: Dockerfile
     image: portal-postgrado-api:latest
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     expose:
       - "8080"
+    env_file:
+      - .env
     networks:
       - dokploy-network
       - backend-network
@@ -17,7 +24,9 @@ services:
       APP_DEBUG: "false"
       APP_URL: ${APP_URL:?Define APP_URL en Dokploy o en .env}
       FRONTEND_URL: ${FRONTEND_URL:?Define FRONTEND_URL en Dokploy o en .env}
-      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:?Define SANCTUM_STATEFUL_DOMAINS en Dokploy o en .env}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Define CORS_ALLOWED_ORIGINS en Dokploy o en .env}
+      APP_TIMEZONE: ${APP_TIMEZONE:-America/La_Paz}
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: "5432"
@@ -27,13 +36,13 @@ services:
       SESSION_DRIVER: file
       CACHE_STORE: file
       QUEUE_CONNECTION: sync
-      TZ: America/La_Paz
+      TZ: ${TZ:-America/La_Paz}
       AUTORUN_ENABLED: "true"
       AUTORUN_LARAVEL_MIGRATION: "true"
       AUTORUN_LARAVEL_MIGRATION_FORCE: "true"
       HEALTHCHECK_PATH: /up
     volumes:
-      - ./files/storage:/var/www/html/storage/app/public
+      - ${STORAGE_PATH:-./files/storage}:/var/www/html/storage/app/public
       - app_cache:/var/www/html/storage/framework/cache/data
     depends_on:
       db:
@@ -47,21 +56,38 @@ services:
         VITE_API_URL: ${VITE_API_URL:?Define VITE_API_URL en Dokploy o en .env}
     image: portal-postgrado-frontend:latest
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     expose:
       - "80"
+    environment:
+      TZ: ${TZ:-America/La_Paz}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     networks:
       - dokploy-network
 
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - backend-network
     environment:
       POSTGRES_DB: ${DB_DATABASE:-portal}
       POSTGRES_USER: ${DB_USERNAME:-portal}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en Dokploy o en .env}
-      TZ: America/La_Paz
+      TZ: ${TZ:-America/La_Paz}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:

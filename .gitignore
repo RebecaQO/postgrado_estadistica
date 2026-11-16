@@ -47,3 +47,11 @@ files/storage/*
 !files/storage/.gitkeep
 files/storage/*/*
 !files/storage/*/.gitkeep
+
+# Backups and exported database data may contain personal information
+respaldos/*
+!respaldos/README.md
+*.sql
+*.dump
+*.backup
+*.zip

@@ -1,144 +1,155 @@
 # Portal Académico de Posgrado — Carrera de Estadística UMSA
 
-Sistema integral web para la gestión, difusión y administración de programas de posgrado (Maestrías y Diplomados), convocatorias, defensas de grado, planta docente y usuarios de la Carrera de Estadística e Instituto de Estadística Teórica y Aplicada (IETA) de la Universidad Mayor de San Andrés (UMSA).
+Portal público y administrativo para difundir y gestionar programas de posgrado, convocatorias, defensas de tesis, noticias, docentes, personal administrativo y cuentas de usuario de la Carrera de Estadística y el IETA.
 
----
+## Tecnología y arquitectura
 
-## 🏗️ Arquitectura del Sistema
+- API: PHP 8.5 y Laravel 13 con autenticación por tokens Laravel Sanctum.
+- Frontend: React 19 y Vite, compilado como SPA y servido por Nginx.
+- Base de datos: PostgreSQL 16.
+- Despliegue: Docker Compose; Dokploy y Traefik para producción.
+- Persistencia: volumen Docker `db_data` para PostgreSQL y directorio persistente `files/storage` para archivos cargados.
 
-- **Backend:** Laravel 11.x + Laravel Sanctum (Autenticación API) + Laravel Sail.
-- **Base de Datos:** PostgreSQL 17.x con persistencia en volumen Docker.
-- **Frontend:** React 18 + Vite + Tailwind CSS + Lucide Icons + `apiJson` unificado.
-- **Entorno de Ejecución:** WSL2 (Ubuntu) con Docker Desktop.
+## Requisitos
 
----
+- Git.
+- Docker Engine y Docker Compose v2 (Docker Desktop en Windows).
+- Acceso al repositorio y a las variables de entorno del entorno correspondiente.
 
-## 🚀 Inicio Rápido de los Servicios
+## Ejecución local
 
-Desde PowerShell en la raíz del repositorio:
+Clona la rama de preparación y crea el archivo local de entorno:
 
-### 1. Iniciar Contenedores (Sail / Docker Compose)
+```bash
+git clone --branch preparacion-produccion-dokploy https://github.com/RebecaQO/postgrado_estadistica.git
+cd postgrado_estadistica
+cp .env.example .env
+```
+
+En PowerShell, usa `Copy-Item .env.example .env` en lugar de `cp`.
+
+Edita `.env` antes de levantar los servicios:
+
+- Genera un `APP_KEY` distinto por entorno. Puedes generarlo con Docker:
+
+  ```bash
+  docker run --rm serversideup/php:8.5-cli php -r "echo 'base64:'.base64_encode(random_bytes(32)).PHP_EOL;"
+  ```
+
+- Sustituye `DB_PASSWORD` por una contraseña larga y única.
+- Para local, configura `APP_URL=http://localhost:8080`, `FRONTEND_URL=http://localhost:3000`, `VITE_API_URL=http://localhost:8080`, `CORS_ALLOWED_ORIGINS=http://localhost:3000` y `SANCTUM_STATEFUL_DOMAINS=localhost:3000,127.0.0.1:3000`.
+- Conserva `STORAGE_PATH=./files/storage` para que las cargas locales queden dentro del proyecto.
+
+Inicia y revisa los contenedores:
+
 ```bash
 docker compose -f compose.yaml -f compose.local.yaml up -d --build
-```
-
-### 2. Verificar Estado de los Contenedores
-```bash
 docker compose -f compose.yaml -f compose.local.yaml ps
 ```
-Los servicios `app`, `frontend` y `db` deben estar activos; `app` y `db` deben figurar como saludables.
 
-### 3. Direcciones de Acceso Local
-- 🌐 **Portal Web (Frontend):** [http://localhost:3000](http://localhost:3000)
-- 🔌 **API REST (Backend):** [http://localhost:8080/api](http://localhost:8080/api)
-- 🩺 **Salud del backend:** [http://localhost:8080/up](http://localhost:8080/up)
-- 🗄️ **PostgreSQL:** red interna de Docker (`db:5432`); no se publica al host.
+Abre el portal en `http://localhost:3000`, la API en `http://localhost:8080/api` y la salud de Laravel en `http://localhost:8080/up`. La base de datos no publica un puerto al equipo anfitrión.
 
----
+Las migraciones se ejecutan al iniciar el contenedor de Laravel. Para crear la primera cuenta administradora, después de que la API esté saludable, ejecuta el comando interactivo:
 
-## 🔐 Acceso
-
-El inicio de sesión acepta nombre de usuario o correo electrónico. El esquema de `usuarios` se crea con las migraciones al iniciar los contenedores, pero no se incluye una cuenta de prueba ni una contraseña predeterminada. Crea las cuentas con credenciales únicas y privadas para cada entorno.
-
----
-
-## 📌 Módulos del Sistema
-
-### 1. Portal Administrativo (`/admin` / Modal Login)
-- **Gestión de Programas de Posgrado:**
-  - Creación y edición integral de **Maestrías** (estructura modular con materias, créditos y carga horaria) y **Diplomados** (materias directas asignadas al plan de estudios).
-  - Activación y desactivación en tiempo real (`PATCH /api/programas/{id}/desactivar` y `reactivar`).
-  - Registro de ediciones con fecha de inicio, duración, requisitos, modalidad de titulación, enlace de convocatoria y formulario de preinscripción.
-- **Defensas de Tesis y Grado:**
-  - Registro, programación, tribunales evaluadores y estados de defensas académicas.
-- **Gestión de Usuarios y Roles:**
-  - Control de usuarios administrativos, cambio de contraseñas y asignación de roles.
-- **Carrera / IETA:**
-  - Información institucional, autoridades, misión, visión y datos de contacto oficiales.
-
-### 2. Portal Público y Catálogo
-- **Navegación Dinámica por Hash:**
-  - `/#programa/:id` — Ficha y vista detallada oficial del programa académico (información de grado, malla modular, materias, créditos CEUB, perfil del postulante y perfil de egreso).
-  - `/#programas` — Catálogo general con filtros por grado académico, área de conocimiento y modalidad.
-  - `/#institucion` — Identidad institucional de la Carrera de Estadística y el IETA.
-  - `/#convocatorias` — Convocatorias vigentes para postulaciones abiertas.
-  - `/#admision` — Pasos, cronograma y requisitos de admisión.
-  - `/#contacto` — Canales de atención presenciales y enlace directo a WhatsApp.
-
----
-
-## 🛠️ Comandos de Mantenimiento
-
-### Ejecución de Comandos Artisan y Migraciones
-Los comandos de backend se ejecutan a través del wrapper de Sail dentro de `backend/`:
 ```bash
-cd ~/proyectos/POS_EST/backend
-./vendor/bin/sail artisan route:list --path=api
-./vendor/bin/sail artisan migrate --force
+docker compose -f compose.yaml -f compose.local.yaml exec app php artisan portal:crear-admin
 ```
 
-### Compilar Frontend para Producción
+El comando solicita usuario, correo y contraseña sin mostrar esta última, requiere al menos 12 caracteres y solo crea una cuenta si todavía no existe un administrador activo. `DatabaseSeeder` no crea cuentas de prueba. No ejecutes `db:seed` en producción.
+
+## Variables de entorno
+
+`.env.example` contiene únicamente nombres y valores ilustrativos. No contiene claves ni contraseñas válidas. Mantén `.env` fuera de Git y configura valores únicos en cada entorno.
+
+| Variable | Uso |
+|---|---|
+| `APP_KEY` | Clave de cifrado Laravel única y permanente por entorno. No la rotes durante una actualización normal. |
+| `APP_URL` | Origen público HTTPS de la API. |
+| `FRONTEND_URL` | Origen público HTTPS del frontend y origen CORS predeterminado. |
+| `CORS_ALLOWED_ORIGINS` | Lista separada por comas de orígenes web permitidos, incluyendo esquema y sin rutas. |
+| `SANCTUM_STATEFUL_DOMAINS` | Host del frontend, sin esquema; incluye el puerto en local. |
+| `VITE_API_URL` | URL pública de la API; queda integrada en el frontend durante la compilación. |
+| `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | Base y credenciales PostgreSQL. Usa valores propios y seguros. |
+| `TZ`, `APP_TIMEZONE` | Zona horaria; usa `America/La_Paz`. |
+| `STORAGE_PATH` | Ruta persistente del host montada en el almacenamiento público de Laravel. |
+
+El backend usa tokens Bearer y CORS no habilita credenciales cross-site. Laravel está configurado para confiar en Traefik como proxy, ya que el servicio de API no publica puertos al host en producción.
+
+## Despliegue en Dokploy
+
+La rama `preparacion-produccion-dokploy` es candidata a revisión. Según el estándar de despliegue de la Carrera, la versión de producción debe desplegarse desde el fork aprobado en la organización `sociest`; Dokploy no debe apuntar al repositorio personal.
+
+En Dokploy, crea una aplicación Compose desde el repositorio oficial aprobado, usando la raíz como directorio. Configura las variables del cuadro anterior con URLs HTTPS reales y secretos del entorno de producción. No reutilices el `APP_KEY` ni la contraseña de PostgreSQL de otro entorno. Configura `STORAGE_PATH=../files/storage` para el bind mount persistente recomendado por el servidor.
+
+Requisitos de red y dominio:
+
+- En el host debe existir la red externa `dokploy-network`.
+- Asigna el dominio del frontend al servicio `frontend`, puerto interno `80`.
+- Asigna el dominio de API al servicio `app`, puerto interno `8080`.
+- `compose.yaml` no publica puertos al host. `compose.local.yaml` solo se usa en desarrollo y contiene los mapeos `3000:80` y `8080:8080`.
+- PostgreSQL solo está en la red interna `backend-network`; no le asignes dominio ni puerto público.
+- TLS termina en Traefik. Usa HTTPS en `APP_URL`, `FRONTEND_URL`, `VITE_API_URL` y `CORS_ALLOWED_ORIGINS`.
+
+Compose reconstruye frontend y API. El arranque de API ejecuta `php artisan migrate --force` mediante la configuración del contenedor. Revisa los logs y confirma los health checks antes de dar el despliegue por listo. Haz y verifica una copia de la base de datos y de `files/storage` antes de actualizar. No uses `docker compose down -v`: elimina el volumen de PostgreSQL.
+
+Los archivos subidos se escriben en `/var/www/html/storage/app/public`; el bind mount de `STORAGE_PATH` debe conservarse entre despliegues. El volumen `db_data` conserva PostgreSQL.
+
+## Correo electrónico
+
+La aplicación no envía correos actualmente; Laravel usa el mailer `log`. Antes de habilitar recuperación de contraseña o notificaciones por correo, configura un SMTP externo en Dokploy usando variables secretas (`MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_ENCRYPTION` y `MAIL_FROM_ADDRESS`) y valida su funcionamiento.
+
+## Actualizar y respaldar
+
+Antes de actualizar, crea una copia de PostgreSQL y otra de `files/storage`. Después, en el entorno local:
+
+El procedimiento detallado para respaldo, actualización y restauración en Windows está en [README_ACTUALIZACION_DOCKER.md](README_ACTUALIZACION_DOCKER.md).
+
 ```bash
-cd ~/proyectos/POS_EST
-docker compose -f compose.yaml -f compose.local.yaml exec frontend npm run build
+docker compose -f compose.yaml -f compose.local.yaml up -d --build --remove-orphans
+docker compose -f compose.yaml -f compose.local.yaml ps
+docker compose -f compose.yaml -f compose.local.yaml logs --tail 100 app frontend db
 ```
 
-### Detener los Servicios
-```bash
-cd ~/proyectos/POS_EST
-docker compose -f compose.yaml -f compose.local.yaml down
-```
+En Dokploy, despliega desde el fork oficial aprobado. No uses `down -v` ni elimines manualmente `db_data` o el directorio persistente de archivos. Guarda los respaldos fuera del servidor que ejecuta la aplicación y fuera de Git.
 
----
+En PowerShell, puedes respaldar la base local en formato PostgreSQL y copiarla fuera del contenedor:
 
-## 💻 Guía para Uso de Git
-
-### Error de "dubious ownership" en Windows PowerShell
-Si intentas usar `git` desde PowerShell en Windows sobre la ruta de red `\\wsl.localhost\Ubuntu\...`, Git de Windows puede mostrar el error:
-```
-fatal: detected dubious ownership in repository at '//wsl.localhost/Ubuntu/home/rebal/proyectos/POS_EST'
-```
-
-Para solucionarlo en tu entorno de Windows, abre PowerShell y ejecuta una sola vez:
 ```powershell
-git config --global --add safe.directory "%(prefix)///wsl.localhost/Ubuntu/home/rebal/proyectos/POS_EST"
+New-Item -ItemType Directory -Force respaldos | Out-Null
+docker compose -f compose.yaml -f compose.local.yaml exec -T db sh -c 'pg_dump -Fc -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/portal-backup.dump'
+if ($LASTEXITCODE -ne 0) { throw "Falló pg_dump; no continúes con la actualización." }
+$backup = ".\respaldos\portal_$(Get-Date -Format 'yyyyMMdd_HHmmss').dump"
+docker compose -f compose.yaml -f compose.local.yaml cp db:/tmp/portal-backup.dump $backup
+if ($LASTEXITCODE -ne 0) { throw "No se pudo copiar el respaldo." }
+Get-Item $backup | Select-Object FullName,Length
 ```
-*(O de manera general: `git config --global --add safe.directory *`)*.
 
-### Opción Recomendada: Ejecutar Git dentro de WSL2
-La forma más rápida, segura y limpia es ejecutar Git directamente desde la terminal de Ubuntu / WSL2:
+Ese respaldo incluye las cuentas de la tabla `usuarios`, sus hashes de contraseña, roles y el resto de los datos. Conserva también `files/storage` y el `.env` en almacenamiento seguro. Los archivos `.sql`, `.dump`, `.backup`, `.zip` y `respaldos/` están excluidos de Git.
+
+Para restaurar, detén la API, copia el archivo al contenedor y restaura solo sobre una base de destino vacía o preparada para reemplazo. `--clean` elimina objetos existentes de la base seleccionada:
+
+```powershell
+docker compose -f compose.yaml -f compose.local.yaml stop app
+docker compose -f compose.yaml -f compose.local.yaml cp .\respaldos\portal_YYYYMMDD_HHMMSS.dump db:/tmp/portal-restore.dump
+docker compose -f compose.yaml -f compose.local.yaml exec -T db sh -c 'pg_restore --clean --if-exists --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB" /tmp/portal-restore.dump'
+if ($LASTEXITCODE -ne 0) { throw "Falló la restauración; deja la API detenida y revisa los registros." }
+docker compose -f compose.yaml -f compose.local.yaml start app
+```
+
+No practiques la restauración sobre producción: primero valida el archivo en una base de pruebas.
+
+## Comprobaciones antes del fork/despliegue
+
+Desde la raíz del proyecto, revisa dependencias y cambios antes de crear una solicitud de integración:
 
 ```bash
-cd ~/proyectos/POS_EST
-
-# 1. Comprobar estado
-git status
-
-# 2. Agregar cambios
-git add .
-
-# 3. Crear commit
-git commit -m "descripcion de los cambios"
-
-# 4. Enviar a GitHub
-git push origin main
+cd frontend
+npm ci
+npm audit --omit=dev
+npm run build
+cd ../backend
+composer install --no-interaction --prefer-dist
+composer audit --no-dev
 ```
 
----
-
-## 📂 Estructura del Repositorio
-
-```
-POS_EST/
-├── backend/                  # API Laravel 11 + Sanctum + PostgreSQL (Sail)
-│   ├── app/Http/Controllers/ # Controladores API (Programas, Defensas, Auth, etc.)
-│   ├── app/Models/           # Modelos Eloquent con relaciones
-│   └── routes/api.php        # Definición de rutas públicas y protegidas
-├── frontend/                 # Aplicación React + Vite
-│   ├── src/components/       # Componentes (Portales, Programas, Admin, etc.)
-│   ├── src/services/         # Clientes de API unificados (programaService, etc.)
-│   └── src/App.jsx           # Enrutamiento dinámico por hash y estado general
-├── evidencias/               # Reportes técnicos de validación y auditoría de fases
-├── docker-compose.yml        # Orquestación de contenedores locales
-└── README.md                 # Documentación técnica del proyecto
-```
+El seeder está vacío intencionalmente. No hay usuarios ni contraseñas predeterminados. Crea la cuenta inicial con `portal:crear-admin` después de las migraciones y entrega credenciales al responsable por un canal seguro.
