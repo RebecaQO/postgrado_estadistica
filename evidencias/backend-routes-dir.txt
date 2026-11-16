@@ -1,3 +1,0 @@
-api.php
-console.php
-web.php

@@ -42,5 +42,8 @@ desktop.ini
 *.log
 docker-compose.override.yml
 
-# Database and file backups contain private application data
-respaldos/*
+# Storage directories (preserves structure via .gitkeep)
+files/storage/*
+!files/storage/.gitkeep
+files/storage/*/*
+!files/storage/*/.gitkeep
